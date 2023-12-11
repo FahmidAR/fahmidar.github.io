@@ -22,6 +22,8 @@ h6 {
   color: #1e1e1e;
 }
 
+
+
 a {
   color: #1e1e1e;
   text-decoration: none;
@@ -1295,3 +1297,110 @@ footer .credits {
 footer .credits a {
   color: #fff;
 }
+
+
+/* Venn Diagram styles */
+.venn-diagram {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin: 50px auto;
+  animation: moveCircles 5s linear infinite alternate; /* Movement animation */
+}
+
+.venn-circle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.7;
+}
+
+.circle1 {
+  width: 200px;
+  height: 200px;
+  top: 70px;
+  left: -80px;
+  background-color: #88e0c3; /* Adjusted color for better contrast */
+  animation: moveCircle1 5s linear infinite alternate;
+}
+
+.circle2 {
+  width: 200px;
+  height: 200px;
+  top: 70px;
+  left: 80px;
+  background-color: #6ab1ec; /* Adjusted color for better contrast */
+  animation: moveCircle2 5s linear infinite alternate;
+}
+
+.circle3 {
+  width: 200px;
+  height: 200px;
+  top: -30px;
+  left: -20px;
+  background-color: #e09d91; /* Adjusted color for better contrast */
+  animation: moveCircle3 5s linear infinite alternate;
+}
+
+/* Label styles */
+.label {
+  position: absolute;
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  width: 100%;
+  transform: translate(-50%, -50%); /* Center the labels */
+}
+
+.label1 {
+  top: 190px;
+  left: 10px;
+}
+
+.label2 {
+  top: 190px;
+  left: 190px;
+}
+
+.label3 {
+  top: 30px;
+  left: 90px;
+}
+
+/* Movement animation keyframes */
+@keyframes moveCircles {
+  to {
+    transform: translateY(10px);
+  }
+}
+
+@keyframes moveCircle1 {
+  to {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes moveCircle2 {
+  to {
+    transform: translateX(-10px);
+  }
+}
+
+@keyframes moveCircle3 {
+  to {
+    transform: translateY(-10px);
+  }
+}
+/* Overall Label styles */
+.overall-label {
+  position: absolute;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  font-style: italic;
+  bottom: 0px; /* Adjust as needed for positioning */
+  left: -55px; /* Adjust as needed for positioning */
+  width: 100%; /* Make it stretch the full width of the parent */
+  color: #6f3131; /* Adjust as needed for contrast */
+}
+
