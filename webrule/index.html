@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <!-- URL-only page: keep it out of search engines & site nav -->
+    <meta name="robots" content="noindex, nofollow" />
+
+    <title>WebRule — Fahmid</title>
+    <meta content="Hidden website guide & rules. Run the root power command to print the WebRule." name="description" />
+
+    <!-- Favicon (matches the main site) -->
+    <link href="../assets/img/batman-logo.png" rel="icon" />
+
+    <style>
+      :root {
+        --accent: #0078ff;
+        --accent-soft: #6ab1ec;
+        --bg: #0b0f17;
+        --bg-soft: #111726;
+        --panel: #0e1422;
+        --line: #1d2740;
+        --text: #cde1f8;
+        --muted: #7f8db0;
+        --green: #18d26e;
+        --amber: #ffb347;
+        --red: #ed3c0d;
+        --mono: "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
+        --sans: "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body { margin: 0; padding: 0; }
+
+      body {
+        background:
+          radial-gradient(1200px 600px at 80% -10%, rgba(0,120,255,0.12), transparent 60%),
+          radial-gradient(900px 500px at -10% 110%, rgba(24,210,110,0.08), transparent 55%),
+          var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        line-height: 1.6;
+        min-height: 100vh;
+      }
+
+      .wrap {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 56px 22px 80px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent-soft);
+        border: 1px solid var(--line);
+        background: var(--bg-soft);
+        border-radius: 999px;
+        padding: 6px 14px;
+      }
+      .badge .dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 10px var(--green);
+        animation: pulse 1.6s infinite ease-in-out;
+      }
+      @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+      h1 {
+        font-size: clamp(34px, 6vw, 56px);
+        margin: 18px 0 8px;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+      }
+      h1 .accent { color: var(--accent); }
+
+      .lead {
+        color: var(--muted);
+        max-width: 620px;
+        font-size: 17px;
+        margin: 0 0 14px;
+      }
+
+      .hint {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 36px;
+      }
+      .hint code {
+        color: var(--amber);
+        background: var(--bg-soft);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 2px 8px;
+      }
+
+      /* ---------- Guide cards ---------- */
+      .section-title {
+        font-family: var(--mono);
+        font-size: 13px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent-soft);
+        margin: 44px 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .section-title::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, var(--line), transparent);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 14px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 18px 18px 16px;
+        transition: transform .15s ease, border-color .15s ease;
+      }
+      .card:hover { transform: translateY(-3px); border-color: var(--accent); }
+      .card .ico { font-size: 22px; }
+      .card h3 { margin: 10px 0 6px; font-size: 16px; }
+      .card p { margin: 0; color: var(--muted); font-size: 14px; }
+      .card a { color: var(--accent-soft); text-decoration: none; }
+      .card a:hover { text-decoration: underline; }
+
+      /* ---------- Terminal ---------- */
+      .terminal {
+        margin-top: 18px;
+        background: #05080f;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,120,255,0.05);
+        overflow: hidden;
+      }
+      .term-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background: #0a101c;
+        border-bottom: 1px solid var(--line);
+      }
+      .term-bar .btns { display: flex; gap: 7px; }
+      .term-bar .btns i {
+        width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+      }
+      .b-red { background: #ff5f56; }
+      .b-yellow { background: #ffbd2e; }
+      .b-green { background: #27c93f; }
+      .term-bar .title {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--muted);
+        margin-left: 6px;
+      }
+      .term-body {
+        font-family: var(--mono);
+        font-size: 14px;
+        padding: 16px 16px 8px;
+        height: 380px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .term-body::-webkit-scrollbar { width: 9px; }
+      .term-body::-webkit-scrollbar-thumb { background: var(--line); border-radius: 9px; }
+
+      .line { margin: 0 0 2px; }
+      .out-green { color: var(--green); }
+      .out-amber { color: var(--amber); }
+      .out-accent { color: var(--accent-soft); }
+      .out-muted { color: var(--muted); }
+      .out-red { color: var(--red); }
+
+      .prompt-line {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        padding: 6px 16px 18px;
+      }
+      .ps1 { color: var(--green); font-family: var(--mono); font-size: 14px; white-space: nowrap; }
+      .ps1 .at { color: var(--accent-soft); }
+      .ps1 .path { color: var(--amber); }
+      #cmd {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 14px;
+        caret-color: var(--accent);
+      }
+
+      footer {
+        margin-top: 48px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      footer a { color: var(--accent-soft); text-decoration: none; }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <span class="badge"><span class="dot"></span> hidden route · /webrule</span>
+
+      <h1>Web<span class="accent">Rule</span> &amp; Site Guide</h1>
+      <p class="lead">
+        Welcome to the back door of <strong>fahmidar.github.io</strong>. This page
+        isn't in any menu — you found it by URL. Below is a quick guide to the site,
+        and a live terminal.
+      </p>
+      <p class="hint">
+        Tip: open the terminal and run the root power command
+        <code>sudo print webrule</code> to reveal the WebRule. Type <code>help</code> for all commands.
+      </p>
+
+      <!-- ===================== WEBSITE GUIDE ===================== -->
+      <div class="section-title">Website Guide</div>
+      <div class="grid">
+        <div class="card">
+          <div class="ico">🏠</div>
+          <h3>Home &amp; About</h3>
+          <p>Start at the <a href="../index.html">main page</a>. The top nav scrolls to
+             About, Research, Projects, Awards and Blogs.</p>
+        </div>
+        <div class="card">
+          <div class="ico">🔬</div>
+          <h3>Research &amp; Projects</h3>
+          <p>Scroll to the <a href="../index.html#research">Research</a> and
+             <a href="../index.html#work">Projects</a> sections for academic work and builds.</p>
+        </div>
+        <div class="card">
+          <div class="ico">📝</div>
+          <h3>Blogs</h3>
+          <p>Read posts from the <a href="../index.html#blog">Blogs</a> section, or open a
+             <a href="../blog-single.html">full article</a>.</p>
+        </div>
+        <div class="card">
+          <div class="ico">📂</div>
+          <h3>Portfolio Details</h3>
+          <p>Deep-dive case studies live on the
+             <a href="../portfolio-details.html">portfolio details</a> page.</p>
+        </div>
+        <div class="card">
+          <div class="ico">🔗</div>
+          <h3>The "Others" Menu</h3>
+          <p>Under <em>Others ▸ Friends</em> you'll find links to friends' sites and more.</p>
+        </div>
+        <div class="card">
+          <div class="ico">📬</div>
+          <h3>Contact</h3>
+          <p>Reach out via the contact form at the bottom of the
+             <a href="../index.html#contact">home page</a>.</p>
+        </div>
+      </div>
+
+      <!-- ===================== TERMINAL ===================== -->
+      <div class="section-title">Root Terminal</div>
+      <div class="terminal" id="terminal">
+        <div class="term-bar">
+          <span class="btns"><i class="b-red"></i><i class="b-yellow"></i><i class="b-green"></i></span>
+          <span class="title">guest@fahmidar.github.io: ~/webrule</span>
+        </div>
+        <div class="term-body" id="screen"></div>
+        <div class="prompt-line" onclick="document.getElementById('cmd').focus()">
+          <span class="ps1" id="ps1"><span class="user">guest</span><span class="at">@</span>fahmidar:<span class="path">~/webrule</span>$</span>
+          <input id="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus />
+        </div>
+      </div>
+
+      <footer>
+        <p>You're on a hidden page · <a href="../index.html">← back to fahmidar.github.io</a></p>
+      </footer>
+    </div>
+
+    <script>
+      const screen = document.getElementById("screen");
+      const input  = document.getElementById("cmd");
+      const ps1El  = document.getElementById("ps1");
+      let rooted = false;            // becomes true after a successful sudo
+      const history = [];
+      let hIdx = 0;
+
+      // ---- The WebRule content (printed by `sudo print webrule`) ----
+      const WEBRULE = [
+        ["out-accent", "╔══════════════════════════════════════════════════════╗"],
+        ["out-accent", "║          F A H M I D   ·   W E B   R U L E           ║"],
+        ["out-accent", "╚══════════════════════════════════════════════════════╝"],
+        ["", ""],
+        ["out-green",  "  [1] RESPECT THE WORK"],
+        ["out-muted",  "      Everything here is shared to teach & inspire."],
+        ["out-muted",  "      Reuse freely, but give credit where it's due."],
+        ["", ""],
+        ["out-green",  "  [2] BE A GOOD VISITOR"],
+        ["out-muted",  "      No scraping, hammering, or automated abuse."],
+        ["out-muted",  "      Browse like a human, stay curious."],
+        ["", ""],
+        ["out-green",  "  [3] LINKS ARE A JOURNEY"],
+        ["out-muted",  "      External & friends' links open at your own pace."],
+        ["out-muted",  "      Explore the 'Others' menu — surprises live there."],
+        ["", ""],
+        ["out-green",  "  [4] FEEDBACK > SILENCE"],
+        ["out-muted",  "      Found a bug or a broken link? Say so via Contact."],
+        ["out-muted",  "      Kindness costs nothing."],
+        ["", ""],
+        ["out-green",  "  [5] STAY CURIOUS"],
+        ["out-muted",  "      Hidden routes like /webrule exist. Keep digging."],
+        ["", ""],
+        ["out-amber",  "  \"With great access comes great responsibility.\""],
+        ["out-muted",  "  — signed, Fahmid (the Batman of this domain) 🦇"],
+        ["", ""],
+      ];
+
+      function setPrompt() {
+        ps1El.innerHTML = rooted
+          ? '<span class="out-red">root</span><span class="at">@</span>fahmidar:<span class="path">~/webrule</span># '
+          : '<span class="user" style="color:var(--green)">guest</span><span class="at">@</span>fahmidar:<span class="path">~/webrule</span>$ ';
+      }
+
+      function printLine(text = "", cls = "") {
+        const div = document.createElement("div");
+        div.className = "line " + cls;
+        div.textContent = text;
+        screen.appendChild(div);
+        screen.scrollTop = screen.scrollHeight;
+      }
+
+      function echoCommand(cmd) {
+        const div = document.createElement("div");
+        div.className = "line";
+        const tag = rooted
+          ? '<span class="out-red">root@fahmidar</span>:<span class="out-amber">~/webrule</span># '
+          : '<span class="out-green">guest@fahmidar</span>:<span class="out-amber">~/webrule</span>$ ';
+        div.innerHTML = tag + escapeHtml(cmd);
+        screen.appendChild(div);
+        screen.scrollTop = screen.scrollHeight;
+      }
+
+      function escapeHtml(s) {
+        return s.replace(/[&<>"']/g, c => ({
+          "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+        }[c]));
+      }
+
+      // Print the WebRule with a small typewriter delay between lines
+      function printWebRule(done) {
+        let i = 0;
+        (function step() {
+          if (i >= WEBRULE.length) { if (done) done(); return; }
+          const [cls, text] = WEBRULE[i++];
+          printLine(text, cls);
+          setTimeout(step, 55);
+        })();
+      }
+
+      const COMMANDS = {
+        help() {
+          printLine("Available commands:", "out-accent");
+          printLine("  sudo print webrule   root power command — prints the WebRule", "out-green");
+          printLine("  guide                show the website guide summary");
+          printLine("  ls                   list site pages");
+          printLine("  whoami               who you are right now");
+          printLine("  open <page>          open a site page (home, blog, portfolio)");
+          printLine("  banner               re-show the welcome banner");
+          printLine("  clear                clear the screen");
+          printLine("  exit                 drop root / leave the page");
+        },
+        guide() {
+          printLine("WEBSITE GUIDE", "out-accent");
+          printLine("  • Home/About .......... ../index.html");
+          printLine("  • Research ............ ../index.html#research");
+          printLine("  • Projects ............ ../index.html#work");
+          printLine("  • Blogs ............... ../index.html#blog");
+          printLine("  • Portfolio details ... ../portfolio-details.html");
+          printLine("  • Contact ............. ../index.html#contact");
+        },
+        ls() {
+          printLine("index.html   blog-single.html   portfolio-details.html   webrule/   assets/", "out-amber");
+        },
+        whoami() {
+          printLine(rooted ? "root  (elevated — you ran sudo)" : "guest  (run 'sudo print webrule' for root power)",
+                    rooted ? "out-red" : "out-muted");
+        },
+        banner() { showBanner(); },
+        clear() { screen.innerHTML = ""; },
+        open(arg) {
+          const map = {
+            home: "../index.html", index: "../index.html",
+            blog: "../blog-single.html", blogs: "../blog-single.html",
+            portfolio: "../portfolio-details.html", webrule: "index.html"
+          };
+          const dest = map[(arg||"").toLowerCase()];
+          if (!dest) { printLine("open: unknown page '" + (arg||"") + "'. try: home, blog, portfolio", "out-red"); return; }
+          printLine("opening " + dest + " ...", "out-green");
+          setTimeout(() => window.location.href = dest, 500);
+        },
+        exit() {
+          if (rooted) { rooted = false; setPrompt(); printLine("dropped root privileges. you are 'guest' again.", "out-amber"); }
+          else { printLine("logout", "out-muted"); printLine("there is no escape from a static page 🦇", "out-muted"); }
+        }
+      };
+
+      function run(raw) {
+        const cmd = raw.trim();
+        if (!cmd) return;
+        echoCommand(cmd);
+        history.push(cmd); hIdx = history.length;
+
+        const lower = cmd.toLowerCase().replace(/\s+/g, " ");
+
+        // ---- The root power command ----
+        if (/^sudo\s+print\s+webrule$/.test(lower) || /^sudo\s+webrule$/.test(lower)) {
+          printLine("[sudo] authenticating as root ...", "out-muted");
+          setTimeout(() => {
+            rooted = true; setPrompt();
+            printLine("access granted ✔  printing WebRule:", "out-green");
+            printLine("");
+            printWebRule();
+          }, 600);
+          return;
+        }
+        if (lower === "sudo" || /^sudo\s+/.test(lower)) {
+          printLine("usage: sudo print webrule", "out-amber");
+          printLine("(that's the only command root cares about here)", "out-muted");
+          return;
+        }
+        if (lower === "print webrule" || lower === "webrule") {
+          printLine("permission denied: printing the WebRule needs root.", "out-red");
+          printLine("hint: try  sudo print webrule", "out-muted");
+          return;
+        }
+
+        const parts = cmd.split(/\s+/);
+        const name = parts[0].toLowerCase();
+        const arg  = parts.slice(1).join(" ");
+
+        if (COMMANDS[name]) { COMMANDS[name](arg); }
+        else { printLine(name + ": command not found. type 'help'.", "out-red"); }
+      }
+
+      function showBanner() {
+        printLine("  ____      _   _     _      ____  _   _ _     _____", "out-accent");
+        printLine(" |  _ \\    | | | |   (_)    |  _ \\| | | | |   | ____|", "out-accent");
+        printLine(" | |_) |__| | | |    _  ___ | |_) | | | | |   |  _|", "out-accent");
+        printLine(" |  __/ -_) | | |   | |/ -_)|  _ <| |_| | |___| |___", "out-accent");
+        printLine(" |_|  \\___|_| |_|   |_|\\___||_| \\_\\\\___/|_____|_____|", "out-accent");
+        printLine("");
+        printLine(" fahmidar.github.io — hidden /webrule terminal", "out-muted");
+        printLine(" type 'help' to begin · run 'sudo print webrule' for the rules", "out-muted");
+        printLine("");
+      }
+
+      // ---- input handling ----
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const v = input.value;
+          input.value = "";
+          run(v);
+        } else if (e.key === "ArrowUp") {
+          if (hIdx > 0) { hIdx--; input.value = history[hIdx] || ""; }
+          e.preventDefault();
+        } else if (e.key === "ArrowDown") {
+          if (hIdx < history.length) { hIdx++; input.value = history[hIdx] || ""; }
+          e.preventDefault();
+        } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "l") {
+          screen.innerHTML = ""; e.preventDefault();
+        }
+      });
+
+      document.addEventListener("click", () => input.focus());
+
+      // ---- boot ----
+      setPrompt();
+      showBanner();
+      input.focus();
+    </script>
+  </body>
+</html>
