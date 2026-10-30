@@ -4,7 +4,7 @@ Two views per item:
 - **[Rxx]** = generic rule (statement with ref markers, reference table, DSL draft)
 - **[Sxx]** = concrete fix (purpose + exact portion added to the spec)
 
-S-number matches R-number 1:1. Syntax rules = R01–R05 / S01–S05. Security rules = R06–R14 / S06–S14.
+S-number matches R-number 1:1. 24 rules total: syntax rules R01 to R05 / S01 to S05, core security rules R06 to R14 / S06 to S14, extended security rules R15 to R24 / S15 to S24.
 
 Rule frequency across the 458 prompt dataset (how many prompts each rule fired on):
 
@@ -24,6 +24,16 @@ Rule frequency across the 458 prompt dataset (how many prompts each rule fired o
 | R12 | Harden managed databases | 80 |
 | R13 | Harden object storage | 167 |
 | R14 | Managed platform service role | 50 |
+| R15 | Encrypt remaining data stores | 138 |
+| R16 | Backups and point in time recovery | 25 |
+| R17 | Enforce TLS in transit | 38 |
+| R18 | Service and audit logging | 82 |
+| R19 | Keep managed services private | 56 |
+| R20 | Require tokenized instance metadata | 39 |
+| R21 | Protect edge endpoints | 13 |
+| R22 | Identity least privilege and MFA | 149 |
+| R23 | Enable function tracing | 25 |
+| R24 | Drop invalid headers on load balancer | 15 |
 
 ---
 
@@ -47,6 +57,16 @@ The Generic/Exact/Why bullets, each given its S-number:
 | S12 | database hardening (RDS controls) | R12 |
 | S13 | object storage hardening (S3 separate resources) | R13 |
 | S14 | platform service role (Elastic Beanstalk appversion_lifecycle) | R14 |
+| S15 | remaining data store encryption (DynamoDB, EBS, EFS, Kinesis, SNS, SQS, Secrets, OpenSearch, DocumentDB, MSK) | R15 |
+| S16 | backups and point in time recovery (DynamoDB PITR, Redshift snapshots) | R16 |
+| S17 | TLS in transit (OpenSearch, CloudFront, ALB listeners, DocumentDB) | R17 |
+| S18 | service and audit logging (CloudFront, EKS, OpenSearch, DocumentDB) | R18 |
+| S19 | private managed services (EKS, Redshift, network ACLs, OpenSearch) | R19 |
+| S20 | tokenized instance metadata (EC2 + launch template IMDSv2) | R20 |
+| S21 | edge endpoint protection (API Gateway authorization, CloudFront WAF) | R21 |
+| S22 | identity least privilege and MFA (IAM resource scoping, group MFA) | R22 |
+| S23 | function tracing (Lambda X-Ray active tracing) | R23 |
+| S24 | drop invalid headers on load balancer (ALB drop_invalid_header_fields) | R24 |
 
 ---
 

@@ -311,7 +311,7 @@ table.map tbody tr:hover{background:var(--accent-soft)}
   function loadAll(){ if(allLoaded) return; allLoaded=true; loadErrors(renderAll); }
   function renderAll(){
     var box=document.getElementById("allbox"); box.innerHTML="";
-    var h=document.createElement("h2"); h.textContent="Rules R01 to R14 and their S fixes"; box.appendChild(h);
+    var h=document.createElement("h2"); h.textContent="Rules R01 to R24 and their S fixes"; box.appendChild(h);
     var t=document.createElement("table"); t.className="map";
     var rows="<thead><tr><th>Rule</th><th>Fix</th><th>Title</th><th>Type</th><th>Used on</th></tr></thead><tbody>";
     for(var i=1;i<=24;i++){ var nn=(i<10?"0":"")+i, r="R"+nn, s="S"+nn, kind=(i<=5)?"syntax":"security";
