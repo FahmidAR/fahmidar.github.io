@@ -87,6 +87,9 @@ Add a `terraform` block with required version `>= n` **(a,c,e)** and required cl
 | d | provider block + region | [AWS Provider docs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs) | `region` argument, `~> 5.x` pin convention |
 | e | configuration syntax | [Manage Terraform versions](https://developer.hashicorp.com/terraform/tutorials/configuration-language/versions) | official version-configuration syntax |
 
+**DSL intuition**
+It fires when the file has no pinned terraform block. It scans the top of the file, then prepends a terraform block that pins the core version and the provider version (kept nested) plus a provider block carrying the region, so the configuration pins versions and names a region before anything else runs.
+
 **DSL draft**
 ```
 WHEN  file has no pinned terraform block
@@ -121,6 +124,9 @@ Use only the cloud provider's real resource types and arguments **(a)**, and dec
 | b | declare referenced resources | [Resource Blocks](https://developer.hashicorp.com/terraform/language/resources/syntax) / [References to Values](https://developer.hashicorp.com/terraform/language/expressions/references) | every `type.name` referenced must be declared |
 | c | validate gate | [`terraform validate`](https://developer.hashicorp.com/terraform/cli/commands/validate) | checks config internally consistent (types, refs, args) |
 
+**DSL intuition**
+It fires when validate reports an undeclared reference, a made up resource type, or an unsupported argument or block. It locates the fake type or the reference that points at nothing, then swaps the fake type for a real provider type and declares a real resource for every dangling reference, so validate stops failing.
+
 **DSL draft**
 ```
 WHEN  error in {Reference to undeclared resource, Invalid resource type, Unsupported argument, Unsupported block}
@@ -141,6 +147,9 @@ Use one routing-policy block per `aws_route53_record` with a unique `set_identif
 | a | routing policy + set_identifier | AWS Provider: [`aws_route53_record`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | `weighted/geolocation/latency_routing_policy` + `set_identifier` |
 | b | one record per target | AWS Provider: [`aws_route53_record`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | multiple routing blocks in one record is invalid |
 
+**DSL intuition**
+It fires when one DNS record holds more than one routing policy block, or validate complains about too many policy blocks. It finds the record stuffed with several policy blocks, then splits them into one record per target, each with a single policy block and its own set_identifier.
+
 **DSL draft**
 ```
 WHEN  record has >1 routing_policy block OR error "Too many weighted_routing_policy blocks"
@@ -159,6 +168,9 @@ Keep a single `alias` block, OR `records` + `ttl`, per record ... never both **(
 | Ref | R04 part | source | Details |
 |---|---|---|---|
 | a | alias vs records | AWS Provider: [`aws_route53_record`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | `records`+`ttl` for non-alias, exactly one `alias{}` for alias |
+
+**DSL intuition**
+It fires when a DNS record has more than one alias block, or mixes an alias block with plain records. It finds that conflicting record, then reduces it to a single alias block, or to records plus a ttl, never both at once.
 
 **DSL draft**
 ```
@@ -179,6 +191,9 @@ Supply every required argument **(a)** and remove/relocate deprecated inline arg
 |---|---|---|---|
 | a | required arguments | [AWS Provider resource pages](https://registry.terraform.io/providers/hashicorp/aws/latest/docs) | each resource's mandatory args |
 | b | deprecated arguments | [AWS Provider upgrade guides](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/version-5-upgrade) | move deprecated inline blocks to their v5 resources |
+
+**DSL intuition**
+It fires when validate reports a missing required argument or a deprecated inline block. It finds the resource that is missing the argument, or the deprecated inline block, then adds the required argument, or replaces the old inline block with its current standalone resource.
 
 **DSL draft**
 ```
@@ -202,6 +217,9 @@ Add one rotated managed encryption key (`aws_kms_key` with `enable_key_rotation 
 | a | rotated CMK | AWS Provider: [`aws_kms_key`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key) | `enable_key_rotation` + `deletion_window_in_days` |
 | b | reuse arn for encryption | [`aws_cloudwatch_log_group`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) · S3 SSE · [`aws_db_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance) | `kms_key_id = aws_kms_key.main.arn` on each |
 | c | why rotate | Aqua AVD ... [AVD-AWS-0065](https://avd.aquasec.com/misconfig/avd-aws-0065/) | one key satisfies logs 0017, S3 0088/0132, RDS 0080 |
+
+**DSL intuition**
+It fires when any resource needs encryption at rest, or a key related finding shows up. It checks whether a managed encryption key already exists, and if none does it adds one rotated key, then points every encryptable resource (logs, object storage, databases) at that single key's arn.
 
 **DSL draft**
 ```
@@ -232,6 +250,9 @@ Set `kms_key_id` **(a)** and `retention_in_days >= 365` **(b)** on every managed
 | a | log encryption | AWS Provider: [`aws_cloudwatch_log_group`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | `kms_key_id = aws_kms_key.main.arn` |
 | b | retention | Aqua AVD ... [AVD-AWS-0017](https://avd.aquasec.com/misconfig/avd-aws-0017/) | `retention_in_days >= 365` |
 
+**DSL intuition**
+It fires when a managed log group is present, or its encryption finding shows up. It matches the log group, then attaches the managed encryption key and sets retention to 365 days.
+
 **DSL draft**
 ```
 WHEN  resource aws_cloudwatch_log_group present OR error AVD-AWS-0017
@@ -258,6 +279,9 @@ Add a network flow log (`aws_flow_log` with its logging role) per virtual networ
 |---|---|---|---|
 | a | flow log + role | AWS Provider: [`aws_flow_log`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/flow_log), [`aws_iam_role`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | `vpc_id`, `iam_role_arn`, log to encrypted group |
 | b | correct schema | Aqua AVD ... [AVD-AWS-0178](https://avd.aquasec.com/misconfig/avd-aws-0178/) | [`aws_flow_log`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/flow_log) has NO `resource_type` argument |
+
+**DSL intuition**
+It fires when a virtual network is present, or its flow log finding shows up. It matches the network, then adds a flow log for it (all traffic, sent to the encrypted log group) together with the logging role the flow log needs.
 
 **DSL draft**
 ```
@@ -293,6 +317,9 @@ Give every rule a `description` **(a)** and replace `0.0.0.0/0` or `::/0` (ingre
 |---|---|---|---|
 | a | rule description | Aqua AVD ... [AVD-AWS-0099](https://avd.aquasec.com/misconfig/avd-aws-0099/)/0124 | every ingress/egress rule needs `description` |
 | b | restrict CIDR | Aqua AVD ... [AVD-AWS-0107](https://avd.aquasec.com/misconfig/avd-aws-0107/) (ingress), 0104 (egress) | no public CIDR; use `aws_vpc.main.cidr_block` |
+
+**DSL intuition**
+It fires when a firewall rule opens to the whole internet (0.0.0.0/0 or ::/0), lacks a description, or raises a rule finding. It matches that open ingress or egress rule, then adds a description and narrows the CIDR to the private network range.
 
 **DSL draft**
 ```
@@ -334,6 +361,9 @@ Set `map_public_ip_on_launch = false` on subnets **(a)**.
 |---|---|---|---|
 | a | no auto public IP | AWS Provider: [`aws_subnet`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) · Aqua AVD ... [AVD-AWS-0164](https://avd.aquasec.com/misconfig/avd-aws-0164/) | `map_public_ip_on_launch = false` |
 
+**DSL intuition**
+It fires when a subnet is present, or its public IP finding shows up. It matches the subnet, then turns off automatic public IP assignment on launch.
+
 **DSL draft**
 ```
 WHEN  resource aws_subnet present OR error AVD-AWS-0164
@@ -354,6 +384,9 @@ Set `internal = true` **(a)** and enable access logging **(b)** on the load bala
 | a | not public | AWS Provider: [`aws_lb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb)/[`aws_elb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elb) · Aqua AVD ... [AVD-AWS-0053](https://avd.aquasec.com/misconfig/avd-aws-0053/) | `internal = true` |
 | b | access logging | AWS Provider: [`aws_lb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb) | `access_logs { bucket=... enabled=true }` |
 
+**DSL intuition**
+It fires when a load balancer is present, or its exposure finding shows up. It matches the public balancer, then makes it internal and turns on access logging.
+
 **DSL draft**
 ```
 WHEN  resource aws_elb/aws_lb present OR error AVD-AWS-0053
@@ -373,6 +406,9 @@ Set `storage_encrypted`+`kms_key_id`, `iam_database_authentication_enabled`, `de
 |---|---|---|---|
 | a | six hardening args | AWS Provider: [`aws_db_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance) · Aqua AVD ... 0080/0077/0176/0177/0133 | encryption, IAM auth, deletion protection, PI, backups, multi-AZ |
 | b | no plaintext password | Aqua AVD | never hardcode `password` |
+
+**DSL intuition**
+It fires when a managed relational database is present, or one of its hardening findings shows up. It matches the database, including any plaintext password, then adds the six hardening arguments (encryption, database auth, deletion protection, performance insights, backups, multi az) and removes the plaintext password.
 
 **DSL draft**
 ```
@@ -409,6 +445,9 @@ Add SEPARATE resources: public access block (all four true) **(a)**, server-side
 | b | encryption | [`aws_s3_bucket_server_side_encryption_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) · [AVD-AWS-0088](https://avd.aquasec.com/misconfig/avd-aws-0088/)/0132/0131 | KMS CMK, `sse_algorithm = "aws:kms"` |
 | c | versioning | [`aws_s3_bucket_versioning`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_versioning) · [AVD-AWS-0090](https://avd.aquasec.com/misconfig/avd-aws-0090/) | `status = "Enabled"` |
 | d | logging | [`aws_s3_bucket_logging`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_logging) · [AVD-AWS-0089](https://avd.aquasec.com/misconfig/avd-aws-0089/) | log to a dedicated bucket |
+
+**DSL intuition**
+It fires when an object storage bucket is present, or one of its findings shows up. It matches the bucket, then adds the separate companion resources (public access block, server side encryption, versioning, logging) that each reference that bucket.
 
 **DSL draft**
 ```
@@ -451,6 +490,9 @@ Give the `appversion_lifecycle` block a `service_role` (a service role arn) **(a
 | a | service_role | AWS Provider: [`aws_elastic_beanstalk_application`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elastic_beanstalk_application) | `appversion_lifecycle` requires `service_role` |
 | b | omit block | AWS Provider | drop `appversion_lifecycle` if no role |
 
+**DSL intuition**
+It fires when a managed platform application has a lifecycle block with no service role. It matches that lifecycle block, then adds the service role arn, or removes the block if it is not needed.
+
 **DSL draft**
 ```
 WHEN  aws_elastic_beanstalk_application has appversion_lifecycle without service_role
@@ -489,6 +531,9 @@ Enable encryption at rest with the customer managed key on every remaining store
 |---|---|---|---|
 | a | control | [`aws_dynamodb_table`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/dynamodb_table) | the AWS provider v5 argument that applies the control |
 | b | finding | Aqua AVD | [AVD-AWS-0023](https://avd.aquasec.com/misconfig/avd-aws-0023/), [AVD-AWS-0025](https://avd.aquasec.com/misconfig/avd-aws-0025/), [AVD-AWS-0026](https://avd.aquasec.com/misconfig/avd-aws-0026/), [AVD-AWS-0027](https://avd.aquasec.com/misconfig/avd-aws-0027/), [AVD-AWS-0037](https://avd.aquasec.com/misconfig/avd-aws-0037/), [AVD-AWS-0039](https://avd.aquasec.com/misconfig/avd-aws-0039/), [AVD-AWS-0048](https://avd.aquasec.com/misconfig/avd-aws-0048/), [AVD-AWS-0064](https://avd.aquasec.com/misconfig/avd-aws-0064/), [AVD-AWS-0076](https://avd.aquasec.com/misconfig/avd-aws-0076/), [AVD-AWS-0084](https://avd.aquasec.com/misconfig/avd-aws-0084/), [AVD-AWS-0095](https://avd.aquasec.com/misconfig/avd-aws-0095/), [AVD-AWS-0096](https://avd.aquasec.com/misconfig/avd-aws-0096/), [AVD-AWS-0098](https://avd.aquasec.com/misconfig/avd-aws-0098/), [AVD-AWS-0128](https://avd.aquasec.com/misconfig/avd-aws-0128/), [AVD-AWS-0179](https://avd.aquasec.com/misconfig/avd-aws-0179/) |
+
+**DSL intuition**
+It fires when tfsec raises any of this rule's findings. It matches the resource that is missing the control, then applies the exact [S15] fix block, which adds encryption at rest with the customer managed key to the remaining data stores.
 
 **DSL draft**
 ```
@@ -530,6 +575,9 @@ Enable point in time recovery (managed NoSQL tables) and snapshot retention (the
 | a | control | [`aws_dynamodb_table`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/dynamodb_table) | the AWS provider v5 argument that applies the control |
 | b | finding | Aqua AVD | [AVD-AWS-0024](https://avd.aquasec.com/misconfig/avd-aws-0024/), [AVD-AWS-0050](https://avd.aquasec.com/misconfig/avd-aws-0050/) |
 
+**DSL intuition**
+It fires when tfsec raises any of this rule's findings. It matches the resource that is missing the control, then applies the exact [S16] fix block, which turns on point in time recovery and snapshot retention so data can be restored.
+
 **DSL draft**
 ```
 WHEN  finding in {AVD-AWS-0024, AVD-AWS-0050}
@@ -566,6 +614,9 @@ Require HTTPS and a modern TLS policy in transit on search, the CDN, load balanc
 | a | control | [`aws_elasticsearch_domain`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elasticsearch_domain) | the AWS provider v5 argument that applies the control |
 | b | finding | Aqua AVD | [AVD-AWS-0012](https://avd.aquasec.com/misconfig/avd-aws-0012/), [AVD-AWS-0013](https://avd.aquasec.com/misconfig/avd-aws-0013/), [AVD-AWS-0043](https://avd.aquasec.com/misconfig/avd-aws-0043/), [AVD-AWS-0046](https://avd.aquasec.com/misconfig/avd-aws-0046/), [AVD-AWS-0047](https://avd.aquasec.com/misconfig/avd-aws-0047/), [AVD-AWS-0054](https://avd.aquasec.com/misconfig/avd-aws-0054/), [AVD-AWS-0073](https://avd.aquasec.com/misconfig/avd-aws-0073/), [AVD-AWS-0126](https://avd.aquasec.com/misconfig/avd-aws-0126/) |
 
+**DSL intuition**
+It fires when tfsec raises any of this rule's findings. It matches the resource that is missing the control, then applies the exact [S17] fix block, which requires HTTPS and a modern TLS policy on the service endpoints.
+
 **DSL draft**
 ```
 WHEN  finding in {AVD-AWS-0012, AVD-AWS-0013, AVD-AWS-0043, AVD-AWS-0046, AVD-AWS-0047, AVD-AWS-0054, AVD-AWS-0073, AVD-AWS-0126}
@@ -600,6 +651,9 @@ Turn on access or audit logging on the CDN, managed Kubernetes, search and docum
 |---|---|---|---|
 | a | control | [`aws_eks_cluster`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | the AWS provider v5 argument that applies the control |
 | b | finding | Aqua AVD | [AVD-AWS-0010](https://avd.aquasec.com/misconfig/avd-aws-0010/), [AVD-AWS-0038](https://avd.aquasec.com/misconfig/avd-aws-0038/), [AVD-AWS-0042](https://avd.aquasec.com/misconfig/avd-aws-0042/), [AVD-AWS-0074](https://avd.aquasec.com/misconfig/avd-aws-0074/), [AVD-AWS-0075](https://avd.aquasec.com/misconfig/avd-aws-0075/) |
+
+**DSL intuition**
+It fires when tfsec raises any of this rule's findings. It matches the resource that is missing the control, then applies the exact [S18] fix block, which turns on access or audit logging so activity is recorded.
 
 **DSL draft**
 ```
@@ -637,6 +691,9 @@ Disable public access and public CIDRs on managed Kubernetes, the data warehouse
 | a | control | [`aws_redshift_cluster`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/redshift_cluster) | the AWS provider v5 argument that applies the control |
 | b | finding | Aqua AVD | [AVD-AWS-0040](https://avd.aquasec.com/misconfig/avd-aws-0040/), [AVD-AWS-0041](https://avd.aquasec.com/misconfig/avd-aws-0041/), [AVD-AWS-0105](https://avd.aquasec.com/misconfig/avd-aws-0105/), [AVD-AWS-0127](https://avd.aquasec.com/misconfig/avd-aws-0127/), [AVD-AWS-0180](https://avd.aquasec.com/misconfig/avd-aws-0180/) |
 
+**DSL intuition**
+It fires when tfsec raises any of this rule's findings. It matches the resource that is missing the control, then applies the exact [S19] fix block, which disables public access and keeps the service inside the virtual network.
+
 **DSL draft**
 ```
 WHEN  finding in {AVD-AWS-0040, AVD-AWS-0041, AVD-AWS-0105, AVD-AWS-0127, AVD-AWS-0180}
@@ -671,6 +728,9 @@ Require tokenized instance metadata (IMDSv2 session tokens) on compute instances
 |---|---|---|---|
 | a | control | [`aws_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | the AWS provider v5 argument that applies the control |
 | b | finding | Aqua AVD | [AVD-AWS-0028](https://avd.aquasec.com/misconfig/avd-aws-0028/), [AVD-AWS-0130](https://avd.aquasec.com/misconfig/avd-aws-0130/) |
+
+**DSL intuition**
+It fires when tfsec raises any of this rule's findings. It matches the resource that is missing the control, then applies the exact [S20] fix block, which requires tokenized instance metadata so instance metadata is not open.
 
 **DSL draft**
 ```
@@ -709,6 +769,9 @@ Require authorization on API gateway methods and attach a web application firewa
 | a | control | [`aws_api_gateway_method`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_method) | the AWS provider v5 argument that applies the control |
 | b | finding | Aqua AVD | [AVD-AWS-0004](https://avd.aquasec.com/misconfig/avd-aws-0004/), [AVD-AWS-0011](https://avd.aquasec.com/misconfig/avd-aws-0011/) |
 
+**DSL intuition**
+It fires when tfsec raises any of this rule's findings. It matches the resource that is missing the control, then applies the exact [S21] fix block, which requires authorization on the API methods and puts a web application firewall in front of the CDN.
+
 **DSL draft**
 ```
 WHEN  finding in {AVD-AWS-0004, AVD-AWS-0011}
@@ -745,6 +808,9 @@ Scope identity policy resources instead of wildcards for sensitive actions, and 
 |---|---|---|---|
 | a | control | [`aws_iam_policy`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | the AWS provider v5 argument that applies the control |
 | b | finding | Aqua AVD | [AVD-AWS-0057](https://avd.aquasec.com/misconfig/avd-aws-0057/), [AVD-AWS-0123](https://avd.aquasec.com/misconfig/avd-aws-0123/) |
+
+**DSL intuition**
+It fires when tfsec raises any of this rule's findings. It matches the resource that is missing the control, then applies the exact [S22] fix block, which scopes identity policy resources instead of wildcards and enforces MFA on groups.
 
 **DSL draft**
 ```
@@ -785,6 +851,9 @@ Enable active request tracing on serverless functions for observability.
 | a | control | [`aws_lambda_function`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function) | the AWS provider v5 argument that applies the control |
 | b | finding | Aqua AVD | [AVD-AWS-0066](https://avd.aquasec.com/misconfig/avd-aws-0066/) |
 
+**DSL intuition**
+It fires when tfsec raises any of this rule's findings. It matches the resource that is missing the control, then applies the exact [S23] fix block, which turns on active request tracing on the serverless functions.
+
 **DSL draft**
 ```
 WHEN  finding in {AVD-AWS-0066}
@@ -824,6 +893,9 @@ Set drop_invalid_header_fields on application load balancers.
 |---|---|---|---|
 | a | control | [`aws_lb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb) | the AWS provider v5 argument that applies the control |
 | b | finding | Aqua AVD | [AVD-AWS-0052](https://avd.aquasec.com/misconfig/avd-aws-0052/) |
+
+**DSL intuition**
+It fires when tfsec raises any of this rule's findings. It matches the resource that is missing the control, then applies the exact [S24] fix block, which drops invalid request headers on the load balancer.
 
 **DSL draft**
 ```
