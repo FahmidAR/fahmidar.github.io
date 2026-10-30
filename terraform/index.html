@@ -149,7 +149,7 @@ table.map tbody tr:hover{background:var(--accent-soft)}
 
 <div class="wrap">
   <header>
-    <p class="kicker">Spec and Rule guided Improvement &middot; IAC_SEC_EVAL</p>
+    <p class="kicker">Spec and Rule guided Improvement, IAC_SEC_EVAL</p>
     <h1>TERRAFORM 459</h1>
     <p class="sub">Before and after for every prompt. Old spec Terraform versus new hardened spec Terraform, scanned with terraform validate and tfsec. 458 cases.</p>
 
@@ -187,7 +187,6 @@ table.map tbody tr:hover{background:var(--accent-soft)}
         <tr><th>fully clean</th><td class="num old">39</td><td class="num new">372</td><td><span class="planned">planned</span></td></tr>
       </tbody>
     </table>
-    <p class="note">Counts out of 458 cases, old spec versus new hardened spec. After the residual rerun with the extended R15 to R24 controls, 93 tfsec findings remain across 60 of 458 cases (down from 289 across 117). The Rule Fix column is a planned next update (rule driven transform, idea stage).</p>
 
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" id="tab-cases" aria-selected="true" aria-controls="view-cases">459 Cases</button>
@@ -241,7 +240,7 @@ table.map tbody tr:hover{background:var(--accent-soft)}
     <div id="secbox" style="max-height:72vh;overflow:auto">Loading&hellip;</div>
   </section>
 
-  <footer>458 cases &middot; validate 165&rarr;395 &middot; tfsec clean 122&rarr;338 &middot; fully clean 39&rarr;311 &middot; 70 tfsec ids, 70 mapped (R01 to R24)</footer>
+  <footer>458 cases, validate 165&rarr;415, tfsec clean 122&rarr;398, fully clean 39&rarr;372, 70 tfsec ids, 70 mapped (R01 to R24)</footer>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
@@ -338,7 +337,7 @@ table.map tbody tr:hover{background:var(--accent-soft)}
     yt.innerHTML=yr+"</tbody>"; box.appendChild(yt);
 
     wireErrSearch("qa","counta","#allbox .secrow, #allbox .synrow",
-                  ERR.security.length+" security ids &middot; "+ERR.syntax.length+" syntax types");
+                  ERR.security.length+" security ids, "+ERR.syntax.length+" syntax types");
   }
 
   // ---- Syntax Error Fix ----

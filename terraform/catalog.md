@@ -4,7 +4,7 @@ Two views per item:
 - **[Rxx]** = generic rule (statement with ref markers, reference table, DSL draft)
 - **[Sxx]** = concrete fix (purpose + exact portion added to the spec)
 
-S-number matches R-number 1:1. 24 rules total: syntax rules R01 to R05 / S01 to S05, core security rules R06 to R14 / S06 to S14, extended security rules R15 to R24 / S15 to S24.
+S-number matches R-number 1:1. 24 rules total: syntax rules R01 to R05 / S01 to S05, core security rules R06 to R24 / S06 to S24.
 
 Every one of the 70 security findings now carries tfsec verified good and bad example pairs in the Security Error Fix tab, drawn from three sources: our dataset run (real old versus new code), online community reproducer patterns, and the official Terraform AWS provider registry form. Only pairs where tfsec fires on bad and clears on good are kept (207 verified pairs: 169 dataset, 28 online, 10 official); a pair that does not reproduce is dropped, not shown.
 
@@ -215,7 +215,7 @@ Add one rotated managed encryption key (`aws_kms_key` with `enable_key_rotation 
 | Ref | R06 part | source | Details |
 |---|---|---|---|
 | a | rotated CMK | AWS Provider: [`aws_kms_key`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key) | `enable_key_rotation` + `deletion_window_in_days` |
-| b | reuse arn for encryption | [`aws_cloudwatch_log_group`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) · S3 SSE · [`aws_db_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance) | `kms_key_id = aws_kms_key.main.arn` on each |
+| b | reuse arn for encryption | [`aws_cloudwatch_log_group`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group), S3 SSE, [`aws_db_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance) | `kms_key_id = aws_kms_key.main.arn` on each |
 | c | why rotate | Aqua AVD ... [AVD-AWS-0065](https://avd.aquasec.com/misconfig/avd-aws-0065/) | one key satisfies logs 0017, S3 0088/0132, RDS 0080 |
 
 **DSL intuition**
@@ -359,7 +359,7 @@ Set `map_public_ip_on_launch = false` on subnets **(a)**.
 
 | Ref | R10 part | source | Details |
 |---|---|---|---|
-| a | no auto public IP | AWS Provider: [`aws_subnet`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) · Aqua AVD ... [AVD-AWS-0164](https://avd.aquasec.com/misconfig/avd-aws-0164/) | `map_public_ip_on_launch = false` |
+| a | no auto public IP | AWS Provider: [`aws_subnet`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet), Aqua AVD ... [AVD-AWS-0164](https://avd.aquasec.com/misconfig/avd-aws-0164/) | `map_public_ip_on_launch = false` |
 
 **DSL intuition**
 It fires when a subnet is present, or its public IP finding shows up. It matches the subnet, then turns off automatic public IP assignment on launch.
@@ -381,7 +381,7 @@ Set `internal = true` **(a)** and enable access logging **(b)** on the load bala
 
 | Ref | R11 part | source | Details |
 |---|---|---|---|
-| a | not public | AWS Provider: [`aws_lb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb)/[`aws_elb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elb) · Aqua AVD ... [AVD-AWS-0053](https://avd.aquasec.com/misconfig/avd-aws-0053/) | `internal = true` |
+| a | not public | AWS Provider: [`aws_lb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb)/[`aws_elb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elb), Aqua AVD ... [AVD-AWS-0053](https://avd.aquasec.com/misconfig/avd-aws-0053/) | `internal = true` |
 | b | access logging | AWS Provider: [`aws_lb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb) | `access_logs { bucket=... enabled=true }` |
 
 **DSL intuition**
@@ -404,7 +404,7 @@ Set `storage_encrypted`+`kms_key_id`, `iam_database_authentication_enabled`, `de
 
 | Ref | R12 part | source | Details |
 |---|---|---|---|
-| a | six hardening args | AWS Provider: [`aws_db_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance) · Aqua AVD ... 0080/0077/0176/0177/0133 | encryption, IAM auth, deletion protection, PI, backups, multi-AZ |
+| a | six hardening args | AWS Provider: [`aws_db_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance), Aqua AVD ... 0080/0077/0176/0177/0133 | encryption, IAM auth, deletion protection, PI, backups, multi-AZ |
 | b | no plaintext password | Aqua AVD | never hardcode `password` |
 
 **DSL intuition**
@@ -441,10 +441,10 @@ Add SEPARATE resources: public access block (all four true) **(a)**, server-side
 
 | Ref | R13 part | source | Details |
 |---|---|---|---|
-| a | public access block | [`aws_s3_bucket_public_access_block`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) · [AVD-AWS-0086](https://avd.aquasec.com/misconfig/avd-aws-0086/)/0087/0091/0093/0094 | all four settings `true` |
-| b | encryption | [`aws_s3_bucket_server_side_encryption_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) · [AVD-AWS-0088](https://avd.aquasec.com/misconfig/avd-aws-0088/)/0132/0131 | KMS CMK, `sse_algorithm = "aws:kms"` |
-| c | versioning | [`aws_s3_bucket_versioning`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_versioning) · [AVD-AWS-0090](https://avd.aquasec.com/misconfig/avd-aws-0090/) | `status = "Enabled"` |
-| d | logging | [`aws_s3_bucket_logging`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_logging) · [AVD-AWS-0089](https://avd.aquasec.com/misconfig/avd-aws-0089/) | log to a dedicated bucket |
+| a | public access block | [`aws_s3_bucket_public_access_block`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block), [AVD-AWS-0086](https://avd.aquasec.com/misconfig/avd-aws-0086/)/0087/0091/0093/0094 | all four settings `true` |
+| b | encryption | [`aws_s3_bucket_server_side_encryption_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration), [AVD-AWS-0088](https://avd.aquasec.com/misconfig/avd-aws-0088/)/0132/0131 | KMS CMK, `sse_algorithm = "aws:kms"` |
+| c | versioning | [`aws_s3_bucket_versioning`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_versioning), [AVD-AWS-0090](https://avd.aquasec.com/misconfig/avd-aws-0090/) | `status = "Enabled"` |
+| d | logging | [`aws_s3_bucket_logging`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_logging), [AVD-AWS-0089](https://avd.aquasec.com/misconfig/avd-aws-0089/) | log to a dedicated bucket |
 
 **DSL intuition**
 It fires when an object storage bucket is present, or one of its findings shows up. It matches the bucket, then adds the separate companion resources (public access block, server side encryption, versioning, logging) that each reference that bucket.
@@ -506,7 +506,7 @@ Clears the missing-required-argument error. **Exact portion added**: include `se
 
 ---
 
-## Extended Security Rules (R15 to R24)
+## Security Rules (R15 to R24)
 
 These cover the tfsec findings the first 14 rules did not target. Each fix was run through tfsec; a verified fix clears the finding, otherwise it is marked for more testing.
 
