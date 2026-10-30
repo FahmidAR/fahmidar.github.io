@@ -438,3 +438,395 @@ REWRITE appversion_lifecycle { service_role=aws_iam_role.eb_service.arn max_age_
 
 ### [S14] platform service role
 Clears the missing-required-argument error. **Exact portion added**: include `service_role = aws_iam_role.eb_service.arn` in `appversion_lifecycle` (and declare that role), or omit the block entirely.
+
+
+---
+
+## Extended Security Rules (R15 to R24)
+
+These cover the tfsec findings the first 14 rules did not target. Each fix was run through tfsec; a verified fix clears the finding, otherwise it is marked for more testing.
+
+
+| Rule | Fix | Title | Finding ids | Fired on (prompts) | tfsec check |
+|---|---|---|---|---|---|
+| R15 | S15 | Encrypt remaining data stores | 0023, 0025, 0026, 0027, 0037, 0039, 0048, 0064, 0076, 0084, 0095, 0096, 0098, 0128, 0179 | 138 | need more test |
+| R16 | S16 | Backups and point in time recovery | 0024, 0050 | 25 | need more test |
+| R17 | S17 | Enforce TLS in transit | 0012, 0013, 0043, 0046, 0047, 0054, 0073, 0126 | 38 | verified |
+| R18 | S18 | Service and audit logging | 0010, 0038, 0042, 0074, 0075 | 82 | verified |
+| R19 | S19 | Keep managed services private | 0040, 0041, 0105, 0127, 0180 | 56 | need more test |
+| R20 | S20 | Require IMDSv2 tokens | 0028, 0130 | 39 | verified |
+| R21 | S21 | Protect edge endpoints | 0004, 0011 | 13 | need more test |
+| R22 | S22 | IAM least privilege and MFA | 0057, 0123 | 149 | verified |
+| R23 | S23 | Enable Lambda tracing | 0066 | 25 | verified |
+| R24 | S24 | Drop invalid headers on load balancer | 0052 | 15 | verified |
+
+### [R15] Encrypt remaining data stores  ... Fixes: AVD-AWS-0023, AVD-AWS-0025, AVD-AWS-0026, AVD-AWS-0027, AVD-AWS-0037, AVD-AWS-0039, AVD-AWS-0048, AVD-AWS-0064, AVD-AWS-0076, AVD-AWS-0084, AVD-AWS-0095, AVD-AWS-0096, AVD-AWS-0098, AVD-AWS-0128, AVD-AWS-0179
+Enable encryption at rest with the customer managed KMS key on every remaining store (DynamoDB, EBS, EFS, Kinesis, SNS, SQS, Secrets, OpenSearch, DocumentDB, MSK).
+
+| Ref | part | source | Details |
+|---|---|---|---|
+| a | control | [`aws_dynamodb_table`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/dynamodb_table) | the AWS provider v5 argument that applies the control |
+| b | finding | Aqua AVD | [AVD-AWS-0023](https://avd.aquasec.com/misconfig/avd-aws-0023/), [AVD-AWS-0025](https://avd.aquasec.com/misconfig/avd-aws-0025/), [AVD-AWS-0026](https://avd.aquasec.com/misconfig/avd-aws-0026/), [AVD-AWS-0027](https://avd.aquasec.com/misconfig/avd-aws-0027/), [AVD-AWS-0037](https://avd.aquasec.com/misconfig/avd-aws-0037/), [AVD-AWS-0039](https://avd.aquasec.com/misconfig/avd-aws-0039/), [AVD-AWS-0048](https://avd.aquasec.com/misconfig/avd-aws-0048/), [AVD-AWS-0064](https://avd.aquasec.com/misconfig/avd-aws-0064/), [AVD-AWS-0076](https://avd.aquasec.com/misconfig/avd-aws-0076/), [AVD-AWS-0084](https://avd.aquasec.com/misconfig/avd-aws-0084/), [AVD-AWS-0095](https://avd.aquasec.com/misconfig/avd-aws-0095/), [AVD-AWS-0096](https://avd.aquasec.com/misconfig/avd-aws-0096/), [AVD-AWS-0098](https://avd.aquasec.com/misconfig/avd-aws-0098/), [AVD-AWS-0128](https://avd.aquasec.com/misconfig/avd-aws-0128/), [AVD-AWS-0179](https://avd.aquasec.com/misconfig/avd-aws-0179/) |
+
+**DSL draft**
+```
+WHEN  finding in {AVD-AWS-0023, AVD-AWS-0025, AVD-AWS-0026, AVD-AWS-0027, AVD-AWS-0037, AVD-AWS-0039, AVD-AWS-0048, AVD-AWS-0064, AVD-AWS-0076, AVD-AWS-0084, AVD-AWS-0095, AVD-AWS-0096, AVD-AWS-0098, AVD-AWS-0128, AVD-AWS-0179}
+MATCH resource missing the control
+REWRITE apply the encrypt remaining data stores control shown in [S15]
+```
+
+### [S15] encrypt remaining data stores
+need more test: the fix did not clear the finding in a minimal example yet.
+
+Bad example:
+```hcl
+resource "aws_dynamodb_table" "t" {
+  name     = "t"
+  hash_key = "id"
+  attribute { name = "id" type = "S" }
+}
+```
+Proposed fix (not yet tfsec clean, more testing needed):
+```hcl
+resource "aws_kms_key" "main" { enable_key_rotation = true }
+resource "aws_dynamodb_table" "t" {
+  name     = "t"
+  hash_key = "id"
+  attribute { name = "id" type = "S" }
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.main.arn
+  }
+}
+```
+
+### [R16] Backups and point in time recovery  ... Fixes: AVD-AWS-0024, AVD-AWS-0050
+Enable point in time recovery (DynamoDB) and snapshot retention (Redshift) so data can be restored.
+
+| Ref | part | source | Details |
+|---|---|---|---|
+| a | control | [`aws_dynamodb_table`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/dynamodb_table) | the AWS provider v5 argument that applies the control |
+| b | finding | Aqua AVD | [AVD-AWS-0024](https://avd.aquasec.com/misconfig/avd-aws-0024/), [AVD-AWS-0050](https://avd.aquasec.com/misconfig/avd-aws-0050/) |
+
+**DSL draft**
+```
+WHEN  finding in {AVD-AWS-0024, AVD-AWS-0050}
+MATCH resource missing the control
+REWRITE apply the backups and point in time recovery control shown in [S16]
+```
+
+### [S16] backups and point in time recovery
+need more test: the fix did not clear the finding in a minimal example yet.
+
+Bad example:
+```hcl
+resource "aws_dynamodb_table" "t" {
+  name     = "t"
+  hash_key = "id"
+  attribute { name = "id" type = "S" }
+}
+```
+Proposed fix (not yet tfsec clean, more testing needed):
+```hcl
+resource "aws_dynamodb_table" "t" {
+  name     = "t"
+  hash_key = "id"
+  attribute { name = "id" type = "S" }
+  point_in_time_recovery { enabled = true }
+}
+```
+
+### [R17] Enforce TLS in transit  ... Fixes: AVD-AWS-0012, AVD-AWS-0013, AVD-AWS-0043, AVD-AWS-0046, AVD-AWS-0047, AVD-AWS-0054, AVD-AWS-0073, AVD-AWS-0126
+Require HTTPS and a modern TLS policy in transit on OpenSearch, CloudFront, load balancer listeners and DocumentDB.
+
+| Ref | part | source | Details |
+|---|---|---|---|
+| a | control | [`aws_elasticsearch_domain`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elasticsearch_domain) | the AWS provider v5 argument that applies the control |
+| b | finding | Aqua AVD | [AVD-AWS-0012](https://avd.aquasec.com/misconfig/avd-aws-0012/), [AVD-AWS-0013](https://avd.aquasec.com/misconfig/avd-aws-0013/), [AVD-AWS-0043](https://avd.aquasec.com/misconfig/avd-aws-0043/), [AVD-AWS-0046](https://avd.aquasec.com/misconfig/avd-aws-0046/), [AVD-AWS-0047](https://avd.aquasec.com/misconfig/avd-aws-0047/), [AVD-AWS-0054](https://avd.aquasec.com/misconfig/avd-aws-0054/), [AVD-AWS-0073](https://avd.aquasec.com/misconfig/avd-aws-0073/), [AVD-AWS-0126](https://avd.aquasec.com/misconfig/avd-aws-0126/) |
+
+**DSL draft**
+```
+WHEN  finding in {AVD-AWS-0012, AVD-AWS-0013, AVD-AWS-0043, AVD-AWS-0046, AVD-AWS-0047, AVD-AWS-0054, AVD-AWS-0073, AVD-AWS-0126}
+MATCH resource missing the control
+REWRITE apply the enforce tls in transit control shown in [S17]
+```
+
+### [S17] enforce tls in transit
+tfsec verified: the bad example below triggers the finding and the fixed example clears it.
+
+Bad example:
+```hcl
+resource "aws_elasticsearch_domain" "e" {
+  domain_name = "e"
+}
+```
+Good example (fix applied, tfsec clean):
+```hcl
+resource "aws_elasticsearch_domain" "e" {
+  domain_name = "e"
+  domain_endpoint_options {
+    enforce_https       = true
+    tls_security_policy = "Policy-Min-TLS-1-2-2019-07"
+  }
+}
+```
+
+### [R18] Service and audit logging  ... Fixes: AVD-AWS-0010, AVD-AWS-0038, AVD-AWS-0042, AVD-AWS-0074, AVD-AWS-0075
+Turn on access or audit logging on CloudFront, EKS, OpenSearch and DocumentDB so activity is recorded.
+
+| Ref | part | source | Details |
+|---|---|---|---|
+| a | control | [`aws_eks_cluster`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | the AWS provider v5 argument that applies the control |
+| b | finding | Aqua AVD | [AVD-AWS-0010](https://avd.aquasec.com/misconfig/avd-aws-0010/), [AVD-AWS-0038](https://avd.aquasec.com/misconfig/avd-aws-0038/), [AVD-AWS-0042](https://avd.aquasec.com/misconfig/avd-aws-0042/), [AVD-AWS-0074](https://avd.aquasec.com/misconfig/avd-aws-0074/), [AVD-AWS-0075](https://avd.aquasec.com/misconfig/avd-aws-0075/) |
+
+**DSL draft**
+```
+WHEN  finding in {AVD-AWS-0010, AVD-AWS-0038, AVD-AWS-0042, AVD-AWS-0074, AVD-AWS-0075}
+MATCH resource missing the control
+REWRITE apply the service and audit logging control shown in [S18]
+```
+
+### [S18] service and audit logging
+tfsec verified: the bad example below triggers the finding and the fixed example clears it.
+
+Bad example:
+```hcl
+resource "aws_eks_cluster" "c" {
+  name     = "c"
+  role_arn = "arn:aws:iam::111122223333:role/eks"
+  vpc_config { subnet_ids = ["subnet-1", "subnet-2"] }
+}
+```
+Good example (fix applied, tfsec clean):
+```hcl
+resource "aws_eks_cluster" "c" {
+  name                      = "c"
+  role_arn                  = "arn:aws:iam::111122223333:role/eks"
+  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+  vpc_config { subnet_ids = ["subnet-1", "subnet-2"] }
+}
+```
+
+### [R19] Keep managed services private  ... Fixes: AVD-AWS-0040, AVD-AWS-0041, AVD-AWS-0105, AVD-AWS-0127, AVD-AWS-0180
+Disable public access and public CIDRs on EKS, Redshift, network ACLs and OpenSearch; keep them inside the VPC.
+
+| Ref | part | source | Details |
+|---|---|---|---|
+| a | control | [`aws_redshift_cluster`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/redshift_cluster) | the AWS provider v5 argument that applies the control |
+| b | finding | Aqua AVD | [AVD-AWS-0040](https://avd.aquasec.com/misconfig/avd-aws-0040/), [AVD-AWS-0041](https://avd.aquasec.com/misconfig/avd-aws-0041/), [AVD-AWS-0105](https://avd.aquasec.com/misconfig/avd-aws-0105/), [AVD-AWS-0127](https://avd.aquasec.com/misconfig/avd-aws-0127/), [AVD-AWS-0180](https://avd.aquasec.com/misconfig/avd-aws-0180/) |
+
+**DSL draft**
+```
+WHEN  finding in {AVD-AWS-0040, AVD-AWS-0041, AVD-AWS-0105, AVD-AWS-0127, AVD-AWS-0180}
+MATCH resource missing the control
+REWRITE apply the keep managed services private control shown in [S19]
+```
+
+### [S19] keep managed services private
+need more test: the fix did not clear the finding in a minimal example yet.
+
+Bad example:
+```hcl
+resource "aws_redshift_cluster" "r" {
+  cluster_identifier = "r"
+  node_type           = "dc2.large"
+  publicly_accessible = true
+}
+```
+Proposed fix (not yet tfsec clean, more testing needed):
+```hcl
+resource "aws_redshift_cluster" "r" {
+  cluster_identifier  = "r"
+  node_type           = "dc2.large"
+  publicly_accessible = false
+}
+```
+
+### [R20] Require IMDSv2 tokens  ... Fixes: AVD-AWS-0028, AVD-AWS-0130
+Require IMDSv2 session tokens on EC2 instances and launch templates so instance metadata is not open.
+
+| Ref | part | source | Details |
+|---|---|---|---|
+| a | control | [`aws_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | the AWS provider v5 argument that applies the control |
+| b | finding | Aqua AVD | [AVD-AWS-0028](https://avd.aquasec.com/misconfig/avd-aws-0028/), [AVD-AWS-0130](https://avd.aquasec.com/misconfig/avd-aws-0130/) |
+
+**DSL draft**
+```
+WHEN  finding in {AVD-AWS-0028, AVD-AWS-0130}
+MATCH resource missing the control
+REWRITE apply the require imdsv2 tokens control shown in [S20]
+```
+
+### [S20] require imdsv2 tokens
+tfsec verified: the bad example below triggers the finding and the fixed example clears it.
+
+Bad example:
+```hcl
+resource "aws_instance" "i" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = "t3.micro"
+}
+```
+Good example (fix applied, tfsec clean):
+```hcl
+resource "aws_instance" "i" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = "t3.micro"
+  metadata_options {
+    http_tokens   = "required"
+    http_endpoint = "enabled"
+  }
+}
+```
+
+### [R21] Protect edge endpoints  ... Fixes: AVD-AWS-0004, AVD-AWS-0011
+Require authorization on API Gateway methods and attach a WAF to CloudFront so public endpoints are not open.
+
+| Ref | part | source | Details |
+|---|---|---|---|
+| a | control | [`aws_api_gateway_method`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_method) | the AWS provider v5 argument that applies the control |
+| b | finding | Aqua AVD | [AVD-AWS-0004](https://avd.aquasec.com/misconfig/avd-aws-0004/), [AVD-AWS-0011](https://avd.aquasec.com/misconfig/avd-aws-0011/) |
+
+**DSL draft**
+```
+WHEN  finding in {AVD-AWS-0004, AVD-AWS-0011}
+MATCH resource missing the control
+REWRITE apply the protect edge endpoints control shown in [S21]
+```
+
+### [S21] protect edge endpoints
+need more test: the fix did not clear the finding in a minimal example yet.
+
+Bad example:
+```hcl
+resource "aws_api_gateway_method" "m" {
+  rest_api_id   = "r"
+  resource_id   = "x"
+  http_method   = "GET"
+  authorization = "NONE"
+}
+```
+Proposed fix (not yet tfsec clean, more testing needed):
+```hcl
+resource "aws_api_gateway_method" "m" {
+  rest_api_id   = "r"
+  resource_id   = "x"
+  http_method   = "GET"
+  authorization = "AWS_IAM"
+}
+```
+
+### [R22] IAM least privilege and MFA  ... Fixes: AVD-AWS-0057, AVD-AWS-0123
+Scope IAM policy resources instead of wildcards for sensitive actions, and enforce MFA on groups.
+
+| Ref | part | source | Details |
+|---|---|---|---|
+| a | control | [`aws_iam_policy`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | the AWS provider v5 argument that applies the control |
+| b | finding | Aqua AVD | [AVD-AWS-0057](https://avd.aquasec.com/misconfig/avd-aws-0057/), [AVD-AWS-0123](https://avd.aquasec.com/misconfig/avd-aws-0123/) |
+
+**DSL draft**
+```
+WHEN  finding in {AVD-AWS-0057, AVD-AWS-0123}
+MATCH resource missing the control
+REWRITE apply the iam least privilege and mfa control shown in [S22]
+```
+
+### [S22] iam least privilege and mfa
+tfsec verified: the bad example below triggers the finding and the fixed example clears it.
+
+Bad example:
+```hcl
+resource "aws_iam_policy" "p" {
+  name   = "p"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{ Effect = "Allow", Action = "s3:GetObject", Resource = "*" }]
+  })
+}
+```
+Good example (fix applied, tfsec clean):
+```hcl
+resource "aws_iam_policy" "p" {
+  name   = "p"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{ Effect = "Allow", Action = "s3:GetObject", Resource = "arn:aws:s3:::my-bucket/*" }]
+  })
+}
+```
+
+### [R23] Enable Lambda tracing  ... Fixes: AVD-AWS-0066
+Enable X-Ray active tracing on Lambda functions for observability.
+
+| Ref | part | source | Details |
+|---|---|---|---|
+| a | control | [`aws_lambda_function`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function) | the AWS provider v5 argument that applies the control |
+| b | finding | Aqua AVD | [AVD-AWS-0066](https://avd.aquasec.com/misconfig/avd-aws-0066/) |
+
+**DSL draft**
+```
+WHEN  finding in {AVD-AWS-0066}
+MATCH resource missing the control
+REWRITE apply the enable lambda tracing control shown in [S23]
+```
+
+### [S23] enable lambda tracing
+tfsec verified: the bad example below triggers the finding and the fixed example clears it.
+
+Bad example:
+```hcl
+resource "aws_lambda_function" "f" {
+  function_name = "f"
+  role          = "arn:aws:iam::111122223333:role/l"
+  handler       = "index.handler"
+  runtime       = "python3.12"
+  filename      = "f.zip"
+}
+```
+Good example (fix applied, tfsec clean):
+```hcl
+resource "aws_lambda_function" "f" {
+  function_name = "f"
+  role          = "arn:aws:iam::111122223333:role/l"
+  handler       = "index.handler"
+  runtime       = "python3.12"
+  filename      = "f.zip"
+  tracing_config { mode = "Active" }
+}
+```
+
+### [R24] Drop invalid headers on load balancer  ... Fixes: AVD-AWS-0052
+Set drop_invalid_header_fields on application load balancers.
+
+| Ref | part | source | Details |
+|---|---|---|---|
+| a | control | [`aws_lb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb) | the AWS provider v5 argument that applies the control |
+| b | finding | Aqua AVD | [AVD-AWS-0052](https://avd.aquasec.com/misconfig/avd-aws-0052/) |
+
+**DSL draft**
+```
+WHEN  finding in {AVD-AWS-0052}
+MATCH resource missing the control
+REWRITE apply the drop invalid headers on load balancer control shown in [S24]
+```
+
+### [S24] drop invalid headers on load balancer
+tfsec verified: the bad example below triggers the finding and the fixed example clears it.
+
+Bad example:
+```hcl
+resource "aws_lb" "a" {
+  name               = "a"
+  load_balancer_type = "application"
+  subnets            = ["subnet-1", "subnet-2"]
+}
+```
+Good example (fix applied, tfsec clean):
+```hcl
+resource "aws_lb" "a" {
+  name                       = "a"
+  load_balancer_type         = "application"
+  subnets                    = ["subnet-1", "subnet-2"]
+  drop_invalid_header_fields = true
+}
+```

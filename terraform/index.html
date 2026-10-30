@@ -244,7 +244,7 @@ table.map tbody tr:hover{background:var(--accent-soft)}
     <div id="secbox" style="max-height:72vh;overflow:auto">Loading&hellip;</div>
   </section>
 
-  <footer>458 cases &middot; validate 165&rarr;395 &middot; tfsec clean 122&rarr;338 &middot; fully clean 39&rarr;311 &middot; 70 tfsec ids, 27 mapped</footer>
+  <footer>458 cases &middot; validate 165&rarr;395 &middot; tfsec clean 122&rarr;338 &middot; fully clean 39&rarr;311 &middot; 70 tfsec ids, 70 mapped (R01 to R24)</footer>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
@@ -288,8 +288,8 @@ table.map tbody tr:hover{background:var(--accent-soft)}
       });
     });
   }
-  var RCOUNT={R01:458,R02:227,R03:7,R04:22,R05:142,R06:309,R07:394,R08:347,R09:129,R10:337,R11:33,R12:80,R13:167,R14:50};
-  var RTITLE={R01:"Pin versions",R02:"Declare real resources",R03:"One routing-policy block",R04:"One alias or records",R05:"Required args, drop deprecated",R06:"Central KMS key",R07:"Encrypt CloudWatch logs",R08:"VPC flow logs",R09:"Restrict security groups",R10:"No public subnet IPs",R11:"Internal load balancer",R12:"Harden RDS",R13:"Harden S3",R14:"Elastic Beanstalk service role"};
+  var RCOUNT={R01:458,R02:227,R03:7,R04:22,R05:142,R06:309,R07:394,R08:347,R09:129,R10:337,R11:33,R12:80,R13:167,R14:50,R15:138,R16:25,R17:38,R18:82,R19:56,R20:39,R21:13,R22:149,R23:25,R24:15};
+  var RTITLE={R01:"Pin versions",R02:"Declare real resources",R03:"One routing-policy block",R04:"One alias or records",R05:"Required args, drop deprecated",R06:"Central KMS key",R07:"Encrypt CloudWatch logs",R08:"VPC flow logs",R09:"Restrict security groups",R10:"No public subnet IPs",R11:"Internal load balancer",R12:"Harden RDS",R13:"Harden S3",R14:"Elastic Beanstalk service role",R15:"Encrypt remaining data stores",R16:"Backups and point in time recovery",R17:"Enforce TLS in transit",R18:"Service and audit logging",R19:"Keep managed services private",R20:"Require IMDSv2 tokens",R21:"Protect edge endpoints",R22:"IAM least privilege and MFA",R23:"Enable Lambda tracing",R24:"Drop invalid headers on load balancer"};
 
   function wireErrSearch(qid,cid,sel,label){
     var q=document.getElementById(qid), c=document.getElementById(cid);
@@ -317,7 +317,7 @@ table.map tbody tr:hover{background:var(--accent-soft)}
     var h=document.createElement("h2"); h.textContent="Rules R01 to R14 and their S fixes"; box.appendChild(h);
     var t=document.createElement("table"); t.className="map";
     var rows="<thead><tr><th>Rule</th><th>Fix</th><th>Title</th><th>Type</th><th>Used on</th></tr></thead><tbody>";
-    for(var i=1;i<=14;i++){ var nn=(i<10?"0":"")+i, r="R"+nn, s="S"+nn, kind=(i<=5)?"syntax":"security";
+    for(var i=1;i<=24;i++){ var nn=(i<10?"0":"")+i, r="R"+nn, s="S"+nn, kind=(i<=5)?"syntax":"security";
       rows+="<tr><td><b>"+r+"</b></td><td>"+s+"</td><td>"+esc(RTITLE[r])+"</td><td>"+kind+"</td><td>"+(RCOUNT[r]||0)+" cases</td></tr>"; }
     t.innerHTML=rows+"</tbody>"; box.appendChild(t);
 
@@ -386,11 +386,12 @@ table.map tbody tr:hover{background:var(--accent-soft)}
       var d=document.createElement("p"); d.className="desc"; d.textContent=s.desc; c.appendChild(d);
       c.appendChild(secTitle("example error log")); c.appendChild(pre(s.example_log));
       if(s.bad||s.good){
-        c.appendChild(secTitle("fix from the 459 spec"));
+        c.appendChild(secTitle("bad vs good example"));
         var cols=document.createElement("div"); cols.className="cols";
         cols.appendChild(colBlock("bad", s.bad||"(resource emitted without the control)"));
-        cols.appendChild(colBlock("good", s.good||"")); c.appendChild(cols);
+        cols.appendChild(colBlock("good", s.good||"(need more test)")); c.appendChild(cols);
       }
+      if(s.tested){ var tn=document.createElement("div"); tn.className="src-note"; tn.textContent="tfsec status: "+s.tested; c.appendChild(tn); }
       if(s.official_bad||s.official_good){
         c.appendChild(secTitle("tfsec / Aqua AVD source example"));
         var note=document.createElement("div"); note.className="src-note"; note.textContent="from "+s.avd_link; c.appendChild(note);
