@@ -15,15 +15,15 @@ Rule frequency across the 458 prompt dataset (how many prompts each rule fired o
 | R03 | One routing-policy block | 7 |
 | R04 | One alias or records | 22 |
 | R05 | Required args, drop deprecated | 142 |
-| R06 | Central KMS key | 309 |
-| R07 | Encrypt CloudWatch logs | 394 |
-| R08 | VPC flow logs | 347 |
-| R09 | Restrict security groups | 129 |
+| R06 | Central encryption key | 309 |
+| R07 | Encrypt log groups | 394 |
+| R08 | Network flow logs | 347 |
+| R09 | Restrict firewall rules | 129 |
 | R10 | No public subnet IPs | 337 |
 | R11 | Internal load balancer | 33 |
-| R12 | Harden RDS | 80 |
-| R13 | Harden S3 | 167 |
-| R14 | Elastic Beanstalk service role | 50 |
+| R12 | Harden managed databases | 80 |
+| R13 | Harden object storage | 167 |
+| R14 | Managed platform service role | 50 |
 
 ---
 
@@ -91,7 +91,7 @@ provider "aws" {
 ---
 
 ### [R02] Declare real resources
-Use only real AWS provider v5 resource types and arguments **(a)**, and declare every resource that is referenced **(b)**, so the configuration passes `terraform validate` **(c)** instead of failing on unknown types or undeclared references.
+Use only the cloud provider's real resource types and arguments **(a)**, and declare every resource that is referenced **(b)**, so the configuration passes `terraform validate` **(c)** instead of failing on unknown types or undeclared references.
 
 | Ref | R02 part | source | Details |
 |---|---|---|---|
@@ -172,8 +172,8 @@ Clears missing-argument errors and deprecation warnings. **Exact portion added**
 
 ## Security Rules
 
-### [R06] Central KMS key  ... Fixes: AVD-AWS-0065 (underpins 0017, 0080, 0088, 0132)
-Add one `aws_kms_key` with `enable_key_rotation = true` **(a)** and reference its arn from every encryptable resource **(b)**, so encryption-at-rest findings clear with a single managed, rotated key **(c)**.
+### [R06] Central encryption key  ... Fixes: AVD-AWS-0065 (underpins 0017, 0080, 0088, 0132)
+Add one rotated managed encryption key (`aws_kms_key` with `enable_key_rotation = true`) **(a)** and reference its arn from every encryptable resource **(b)**, so encryption-at-rest findings clear with a single managed, rotated key **(c)**.
 
 | Ref | R06 part | source | Details |
 |---|---|---|---|
@@ -202,8 +202,8 @@ Then on each encryptable resource: `kms_key_id = aws_kms_key.main.arn`.
 
 ---
 
-### [R07] Encrypt CloudWatch logs  ... Fixes: AVD-AWS-0017
-Set `kms_key_id` **(a)** and `retention_in_days >= 365` **(b)** on every CloudWatch log group.
+### [R07] Encrypt log groups  ... Fixes: AVD-AWS-0017
+Set `kms_key_id` **(a)** and `retention_in_days >= 365` **(b)** on every managed log group.
 
 | Ref | R07 part | source | Details |
 |---|---|---|---|
@@ -229,8 +229,8 @@ resource "aws_cloudwatch_log_group" "example" {
 
 ---
 
-### [R08] VPC flow logs  ... Fixes: AVD-AWS-0178
-Add an `aws_flow_log` (with its IAM role) per VPC **(a)**, using the correct schema with no `resource_type` argument **(b)**.
+### [R08] Network flow logs  ... Fixes: AVD-AWS-0178
+Add a network flow log (`aws_flow_log` with its logging role) per virtual network **(a)**, using the correct schema with no `resource_type` argument **(b)**.
 
 | Ref | R08 part | source | Details |
 |---|---|---|---|
@@ -246,7 +246,7 @@ REWRITE add aws_flow_log { vpc_id=aws_vpc.<n>.id traffic_type="ALL" log_destinat
 ```
 
 ### [S08] network traffic logging
-Enables VPC flow logs with a valid resource. **Exact portion added** ... add one `aws_flow_log` plus its IAM role for EVERY VPC, using no `resource_type` argument:
+Enables Network flow logs with a valid resource. **Exact portion added** ... add one `aws_flow_log` plus its IAM role for EVERY VPC, using no `resource_type` argument:
 ```hcl
 resource "aws_iam_role" "flow" {
   name               = "vpc-flow-role"
@@ -264,8 +264,8 @@ resource "aws_flow_log" "vpc" {
 
 ---
 
-### [R09] Restrict security groups  ... Fixes: AVD-AWS-0099, 0104, 0107, 0124
-Give every rule a `description` **(a)** and replace `0.0.0.0/0` or `::/0` (ingress AND egress) with the VPC CIDR **(b)**.
+### [R09] Restrict firewall rules  ... Fixes: AVD-AWS-0099, 0104, 0107, 0124
+Give every rule a `description` **(a)** and replace `0.0.0.0/0` or `::/0` (ingress AND egress) with the private network CIDR **(b)**.
 
 | Ref | R09 part | source | Details |
 |---|---|---|---|
@@ -344,7 +344,7 @@ The balancer is not public and records access logs. **Exact portion added**: set
 
 ---
 
-### [R12] Harden RDS  ... Fixes: AVD-AWS-0077, 0080, 0133, 0176, 0177 (also 0079, 0082)
+### [R12] Harden managed databases  ... Fixes: AVD-AWS-0077, 0080, 0133, 0176, 0177 (also 0079, 0082)
 Set `storage_encrypted`+`kms_key_id`, `iam_database_authentication_enabled`, `deletion_protection`, `performance_insights_enabled`, `backup_retention_period >= 7`, `multi_az` **(a)**; remove hardcoded passwords **(b)**.
 
 | Ref | R12 part | source | Details |
@@ -378,8 +378,8 @@ resource "aws_db_instance" "main" {
 
 ---
 
-### [R13] Harden S3  ... Fixes: AVD-AWS-0086, 0087, 0088, 0089, 0090, 0091, 0092, 0093, 0094, 0131, 0132
-Add SEPARATE resources: public access block (all four true) **(a)**, server-side encryption with the KMS key **(b)**, versioning Enabled **(c)**, bucket logging **(d)**.
+### [R13] Harden object storage  ... Fixes: AVD-AWS-0086, 0087, 0088, 0089, 0090, 0091, 0092, 0093, 0094, 0131, 0132
+Add SEPARATE resources: public access block (all four true) **(a)**, server-side encryption with the managed key **(b)**, versioning Enabled **(c)**, bucket logging **(d)**.
 
 | Ref | R13 part | source | Details |
 |---|---|---|---|
@@ -421,8 +421,8 @@ resource "aws_s3_bucket_versioning" "b" {
 
 ---
 
-### [R14] Elastic Beanstalk service role  ... Fixes: missing-required-argument (validate)
-Give the `appversion_lifecycle` block a `service_role` (IAM role arn) **(a)**, or omit the block **(b)**.
+### [R14] Managed platform service role  ... Fixes: missing-required-argument (validate)
+Give the `appversion_lifecycle` block a `service_role` (a service role arn) **(a)**, or omit the block **(b)**.
 
 | Ref | R14 part | source | Details |
 |---|---|---|---|
@@ -454,14 +454,14 @@ These cover the tfsec findings the first 14 rules did not target. Each fix was r
 | R17 | S17 | Enforce TLS in transit | 0012, 0013, 0043, 0046, 0047, 0054, 0073, 0126 | 38 | verified |
 | R18 | S18 | Service and audit logging | 0010, 0038, 0042, 0074, 0075 | 82 | verified |
 | R19 | S19 | Keep managed services private | 0040, 0041, 0105, 0127, 0180 | 56 | need more test |
-| R20 | S20 | Require IMDSv2 tokens | 0028, 0130 | 39 | verified |
+| R20 | S20 | Require tokenized instance metadata | 0028, 0130 | 39 | verified |
 | R21 | S21 | Protect edge endpoints | 0004, 0011 | 13 | need more test |
-| R22 | S22 | IAM least privilege and MFA | 0057, 0123 | 149 | verified |
-| R23 | S23 | Enable Lambda tracing | 0066 | 25 | verified |
+| R22 | S22 | Identity least privilege and MFA | 0057, 0123 | 149 | verified |
+| R23 | S23 | Enable function tracing | 0066 | 25 | verified |
 | R24 | S24 | Drop invalid headers on load balancer | 0052 | 15 | verified |
 
 ### [R15] Encrypt remaining data stores  ... Fixes: AVD-AWS-0023, AVD-AWS-0025, AVD-AWS-0026, AVD-AWS-0027, AVD-AWS-0037, AVD-AWS-0039, AVD-AWS-0048, AVD-AWS-0064, AVD-AWS-0076, AVD-AWS-0084, AVD-AWS-0095, AVD-AWS-0096, AVD-AWS-0098, AVD-AWS-0128, AVD-AWS-0179
-Enable encryption at rest with the customer managed KMS key on every remaining store (DynamoDB, EBS, EFS, Kinesis, SNS, SQS, Secrets, OpenSearch, DocumentDB, MSK).
+Enable encryption at rest with the customer managed key on every remaining store (managed NoSQL tables, block and file storage, streaming, messaging, secrets, search and document databases).
 
 | Ref | part | source | Details |
 |---|---|---|---|
@@ -501,7 +501,7 @@ resource "aws_dynamodb_table" "t" {
 ```
 
 ### [R16] Backups and point in time recovery  ... Fixes: AVD-AWS-0024, AVD-AWS-0050
-Enable point in time recovery (DynamoDB) and snapshot retention (Redshift) so data can be restored.
+Enable point in time recovery (managed NoSQL tables) and snapshot retention (the data warehouse) so data can be restored.
 
 | Ref | part | source | Details |
 |---|---|---|---|
@@ -537,7 +537,7 @@ resource "aws_dynamodb_table" "t" {
 ```
 
 ### [R17] Enforce TLS in transit  ... Fixes: AVD-AWS-0012, AVD-AWS-0013, AVD-AWS-0043, AVD-AWS-0046, AVD-AWS-0047, AVD-AWS-0054, AVD-AWS-0073, AVD-AWS-0126
-Require HTTPS and a modern TLS policy in transit on OpenSearch, CloudFront, load balancer listeners and DocumentDB.
+Require HTTPS and a modern TLS policy in transit on search, the CDN, load balancer listeners and managed database endpoints.
 
 | Ref | part | source | Details |
 |---|---|---|---|
@@ -572,7 +572,7 @@ resource "aws_elasticsearch_domain" "e" {
 ```
 
 ### [R18] Service and audit logging  ... Fixes: AVD-AWS-0010, AVD-AWS-0038, AVD-AWS-0042, AVD-AWS-0074, AVD-AWS-0075
-Turn on access or audit logging on CloudFront, EKS, OpenSearch and DocumentDB so activity is recorded.
+Turn on access or audit logging on the CDN, managed Kubernetes, search and document database services so activity is recorded.
 
 | Ref | part | source | Details |
 |---|---|---|---|
@@ -608,7 +608,7 @@ resource "aws_eks_cluster" "c" {
 ```
 
 ### [R19] Keep managed services private  ... Fixes: AVD-AWS-0040, AVD-AWS-0041, AVD-AWS-0105, AVD-AWS-0127, AVD-AWS-0180
-Disable public access and public CIDRs on EKS, Redshift, network ACLs and OpenSearch; keep them inside the VPC.
+Disable public access and public CIDRs on managed Kubernetes, the data warehouse, network ACLs and search; keep them inside the virtual network.
 
 | Ref | part | source | Details |
 |---|---|---|---|
@@ -642,8 +642,8 @@ resource "aws_redshift_cluster" "r" {
 }
 ```
 
-### [R20] Require IMDSv2 tokens  ... Fixes: AVD-AWS-0028, AVD-AWS-0130
-Require IMDSv2 session tokens on EC2 instances and launch templates so instance metadata is not open.
+### [R20] Require tokenized instance metadata  ... Fixes: AVD-AWS-0028, AVD-AWS-0130
+Require tokenized instance metadata (IMDSv2 session tokens) on compute instances and launch templates so instance metadata is not open.
 
 | Ref | part | source | Details |
 |---|---|---|---|
@@ -680,7 +680,7 @@ resource "aws_instance" "i" {
 ```
 
 ### [R21] Protect edge endpoints  ... Fixes: AVD-AWS-0004, AVD-AWS-0011
-Require authorization on API Gateway methods and attach a WAF to CloudFront so public endpoints are not open.
+Require authorization on API gateway methods and attach a web application firewall to the CDN so public endpoints are not open.
 
 | Ref | part | source | Details |
 |---|---|---|---|
@@ -716,8 +716,8 @@ resource "aws_api_gateway_method" "m" {
 }
 ```
 
-### [R22] IAM least privilege and MFA  ... Fixes: AVD-AWS-0057, AVD-AWS-0123
-Scope IAM policy resources instead of wildcards for sensitive actions, and enforce MFA on groups.
+### [R22] Identity least privilege and MFA  ... Fixes: AVD-AWS-0057, AVD-AWS-0123
+Scope identity policy resources instead of wildcards for sensitive actions, and enforce MFA on groups.
 
 | Ref | part | source | Details |
 |---|---|---|---|
@@ -755,8 +755,8 @@ resource "aws_iam_policy" "p" {
 }
 ```
 
-### [R23] Enable Lambda tracing  ... Fixes: AVD-AWS-0066
-Enable X-Ray active tracing on Lambda functions for observability.
+### [R23] Enable function tracing  ... Fixes: AVD-AWS-0066
+Enable active request tracing on serverless functions for observability.
 
 | Ref | part | source | Details |
 |---|---|---|---|
