@@ -147,9 +147,6 @@ table.map thead th{position:sticky;top:0;background:var(--surface2);z-index:1;fo
 table.map tbody tr:hover{background:var(--accent-soft)}
 </style>
 
-<style>:root{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-</head>
-<body>
 <div class="wrap">
   <header>
     <p class="kicker">Spec and Rule guided Improvement &middot; IAC_SEC_EVAL</p>
@@ -159,38 +156,38 @@ table.map tbody tr:hover{background:var(--accent-soft)}
     <div class="kpis">
       <div class="kpi">
         <div class="lab">validate pass</div>
-        <div class="big">395<span class="den"> / 458</span></div>
-        <div class="delta">&plus;230 vs old spec</div>
+        <div class="big">415<span class="den"> / 458</span></div>
+        <div class="delta">&plus;250 vs old spec</div>
         <div class="rowbar"><span class="tag">old</span><div class="track"><div class="fill old" style="width:36%"></div></div><span class="val">165</span></div>
-        <div class="rowbar"><span class="tag">new</span><div class="track"><div class="fill new" style="width:86%"></div></div><span class="val">395</span></div>
+        <div class="rowbar"><span class="tag">new</span><div class="track"><div class="fill new" style="width:91%"></div></div><span class="val">415</span></div>
         <div class="rf">Rule Fix <span class="planned">planned</span></div>
       </div>
       <div class="kpi">
         <div class="lab">tfsec clean</div>
-        <div class="big">338<span class="den"> / 458</span></div>
-        <div class="delta">&plus;216 vs old spec</div>
+        <div class="big">398<span class="den"> / 458</span></div>
+        <div class="delta">&plus;276 vs old spec</div>
         <div class="rowbar"><span class="tag">old</span><div class="track"><div class="fill old" style="width:27%"></div></div><span class="val">122</span></div>
-        <div class="rowbar"><span class="tag">new</span><div class="track"><div class="fill new" style="width:74%"></div></div><span class="val">338</span></div>
+        <div class="rowbar"><span class="tag">new</span><div class="track"><div class="fill new" style="width:87%"></div></div><span class="val">398</span></div>
         <div class="rf">Rule Fix <span class="planned">planned</span></div>
       </div>
       <div class="kpi">
         <div class="lab">fully clean</div>
-        <div class="big">311<span class="den"> / 458</span></div>
-        <div class="delta">&plus;272 vs old spec</div>
+        <div class="big">372<span class="den"> / 458</span></div>
+        <div class="delta">&plus;333 vs old spec</div>
         <div class="rowbar"><span class="tag">old</span><div class="track"><div class="fill old" style="width:9%"></div></div><span class="val">39</span></div>
-        <div class="rowbar"><span class="tag">new</span><div class="track"><div class="fill new" style="width:68%"></div></div><span class="val">311</span></div>
+        <div class="rowbar"><span class="tag">new</span><div class="track"><div class="fill new" style="width:81%"></div></div><span class="val">372</span></div>
         <div class="rf">Rule Fix <span class="planned">planned</span></div>
       </div>
     </div>
     <table class="stats">
       <thead><tr><th>metric</th><th>OLD spec</th><th>NEW spec</th><th>Rule Fix</th></tr></thead>
       <tbody>
-        <tr><th>validate pass</th><td class="num old">165</td><td class="num new">395</td><td><span class="planned">planned</span></td></tr>
-        <tr><th>tfsec clean</th><td class="num old">122</td><td class="num new">338</td><td><span class="planned">planned</span></td></tr>
-        <tr><th>fully clean</th><td class="num old">39</td><td class="num new">311</td><td><span class="planned">planned</span></td></tr>
+        <tr><th>validate pass</th><td class="num old">165</td><td class="num new">415</td><td><span class="planned">planned</span></td></tr>
+        <tr><th>tfsec clean</th><td class="num old">122</td><td class="num new">398</td><td><span class="planned">planned</span></td></tr>
+        <tr><th>fully clean</th><td class="num old">39</td><td class="num new">372</td><td><span class="planned">planned</span></td></tr>
       </tbody>
     </table>
-    <p class="note">Counts out of 458 cases, old spec versus new hardened spec. The Rule Fix column is a planned next update (rule driven transform, idea stage).</p>
+    <p class="note">Counts out of 458 cases, old spec versus new hardened spec. After the residual rerun with the extended R15 to R24 controls, 93 tfsec findings remain across 60 of 458 cases (down from 289 across 117). The Rule Fix column is a planned next update (rule driven transform, idea stage).</p>
 
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" id="tab-cases" aria-selected="true" aria-controls="view-cases">459 Cases</button>
