@@ -6,7 +6,7 @@ Two views per item:
 
 S-number matches R-number 1:1. 24 rules total: syntax rules R01 to R05 / S01 to S05, core security rules R06 to R14 / S06 to S14, extended security rules R15 to R24 / S15 to S24.
 
-Every one of the 70 security findings now carries tfsec verified good and bad example pairs in the Security Error Fix tab, drawn from three sources: our dataset run (real old versus new code), online community reproducer patterns, and the official Terraform AWS provider registry form. Only pairs where tfsec fires on bad and clears on good are kept (193 verified pairs: 169 dataset, 14 online, 10 official); a pair that does not reproduce is dropped, not shown.
+Every one of the 70 security findings now carries tfsec verified good and bad example pairs in the Security Error Fix tab, drawn from three sources: our dataset run (real old versus new code), online community reproducer patterns, and the official Terraform AWS provider registry form. Only pairs where tfsec fires on bad and clears on good are kept (207 verified pairs: 169 dataset, 28 online, 10 official); a pair that does not reproduce is dropped, not shown.
 
 Rule frequency across the 458 prompt dataset (how many prompts each rule fired on):
 
