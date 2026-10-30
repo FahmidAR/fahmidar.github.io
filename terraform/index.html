@@ -376,6 +376,22 @@ table.map tbody tr:hover{background:var(--accent-soft)}
   function renderSecurity(){
     if(secRendered) return; secRendered=true;
     var box=document.getElementById("secbox"); box.innerHTML="";
+    var cov=ERR.coverage;
+    if(cov){
+      var ct=document.createElement("table"); ct.className="map"; ct.style.margin="0 0 18px";
+      ct.innerHTML=
+        "<thead><tr><th>tfsec AWS AVD coverage</th><th>count</th><th>share</th></tr></thead><tbody>"+
+        "<tr><td>all tfsec AWS checks (v"+cov.tfsec_version+")</td><td><b>"+cov.tfsec_aws_total+"</b></td><td>100%</td></tr>"+
+        "<tr><td>appeared in our 458 case dataset</td><td><b>"+cov.dataset_ids+"</b></td><td>"+cov.dataset_pct+"%</td></tr>"+
+        "<tr><td>mapped to a rule (R06 to R24)</td><td><b>"+cov.mapped+" / "+cov.dataset_ids+"</b></td><td>"+Math.round(100*cov.mapped/cov.dataset_ids)+"% of seen</td></tr>"+
+        "<tr><td>with a tfsec verified good/bad pair</td><td><b>"+cov.verified+" / "+cov.dataset_ids+"</b></td><td>"+Math.round(100*cov.verified/cov.dataset_ids)+"% of seen</td></tr>"+
+        "<tr><td>not exercised by the dataset</td><td><b>"+cov.not_exercised+"</b></td><td>"+Math.round(100*cov.not_exercised/cov.tfsec_aws_total)+"% of all</td></tr>"+
+        "</tbody>";
+      box.appendChild(ct);
+      var cn=document.createElement("p"); cn.className="note"; cn.style.margin="0 0 20px";
+      cn.textContent="tfsec v"+cov.tfsec_version+" ships "+cov.tfsec_aws_total+" AWS checks. "+cov.dataset_ids+" of them are triggered by the 458 prompt dataset, and every one of those is mapped to a rule and carries a verified pair. The other "+cov.not_exercised+" checks target resource types that never appear in the dataset; the R15 to R24 controls would apply if those resources were used, but that is not measured here.";
+      box.appendChild(cn);
+    }
     ERR.security.forEach(function(s){
       var ex=s.examples||[];
       var c=document.createElement("div"); c.className="ecard secrow";
