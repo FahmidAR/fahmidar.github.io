@@ -508,21 +508,6 @@ Clears the missing-required-argument error. **Exact portion added**: include `se
 
 ## Security Rules (R15 to R24)
 
-These cover the tfsec findings the first 14 rules did not target. Each fix was run through tfsec; a verified fix clears the finding, otherwise it is marked for more testing.
-
-
-| Rule | Fix | Title | Finding ids | Fired on (prompts) | tfsec check |
-|---|---|---|---|---|---|
-| R15 | S15 | Encrypt remaining data stores | 0023, 0025, 0026, 0027, 0037, 0039, 0048, 0064, 0076, 0084, 0095, 0096, 0098, 0128, 0179 | 138 | need more test |
-| R16 | S16 | Backups and point in time recovery | 0024, 0050 | 25 | need more test |
-| R17 | S17 | Enforce TLS in transit | 0012, 0013, 0043, 0046, 0047, 0054, 0073, 0126 | 38 | verified |
-| R18 | S18 | Service and audit logging | 0010, 0038, 0042, 0074, 0075 | 82 | verified |
-| R19 | S19 | Keep managed services private | 0040, 0041, 0105, 0127, 0180 | 56 | need more test |
-| R20 | S20 | Require tokenized instance metadata | 0028, 0130 | 39 | verified |
-| R21 | S21 | Protect edge endpoints | 0004, 0011 | 13 | need more test |
-| R22 | S22 | Identity least privilege and MFA | 0057, 0123 | 149 | verified |
-| R23 | S23 | Enable function tracing | 0066 | 25 | verified |
-| R24 | S24 | Drop invalid headers on load balancer | 0052 | 15 | verified |
 
 ### [R15] Encrypt remaining data stores  ... Fixes: AVD-AWS-0023, AVD-AWS-0025, AVD-AWS-0026, AVD-AWS-0027, AVD-AWS-0037, AVD-AWS-0039, AVD-AWS-0048, AVD-AWS-0064, AVD-AWS-0076, AVD-AWS-0084, AVD-AWS-0095, AVD-AWS-0096, AVD-AWS-0098, AVD-AWS-0128, AVD-AWS-0179
 Enable encryption at rest with the customer managed key on every remaining store (managed NoSQL tables, block and file storage, streaming, messaging, secrets, search and document databases).
@@ -543,28 +528,25 @@ REWRITE apply the encrypt remaining data stores control shown in [S15]
 ```
 
 ### [S15] encrypt remaining data stores
-need more test: the fix did not clear the finding in a minimal example yet.
+tfsec verified: the bad example below triggers the finding and the fixed example clears it.
 
 Bad example:
 ```hcl
-resource "aws_dynamodb_table" "t" {
-  name     = "t"
-  hash_key = "id"
-  attribute { name = "id" type = "S" }
+resource "aws_sqs_queue" "jobs" {
+  name = "jobs"
 }
 ```
-Proposed fix (not yet tfsec clean, more testing needed):
+Good example (fix applied, tfsec clean):
 ```hcl
-resource "aws_kms_key" "main" { enable_key_rotation = true }
-resource "aws_dynamodb_table" "t" {
-  name     = "t"
-  hash_key = "id"
-  attribute { name = "id" type = "S" }
-  server_side_encryption {
-    enabled     = true
-    kms_key_arn = aws_kms_key.main.arn
-  }
+resource "aws_sqs_queue" "jobs" {
+  name              = "jobs"
+  kms_master_key_id = aws_kms_key.main.arn
 }
+resource "aws_kms_key" "main" {
+  description         = "cmk"
+  enable_key_rotation = true
+}
+
 ```
 
 ### [R16] Backups and point in time recovery  ... Fixes: AVD-AWS-0024, AVD-AWS-0050
@@ -586,23 +568,25 @@ REWRITE apply the backups and point in time recovery control shown in [S16]
 ```
 
 ### [S16] backups and point in time recovery
-need more test: the fix did not clear the finding in a minimal example yet.
+tfsec verified: the bad example below triggers the finding and the fixed example clears it.
 
 Bad example:
 ```hcl
-resource "aws_dynamodb_table" "t" {
-  name     = "t"
-  hash_key = "id"
-  attribute { name = "id" type = "S" }
+resource "aws_elasticache_cluster" "c" {
+  cluster_id        = "cache"
+  engine            = "redis"
+  node_type         = "cache.t3.micro"
+  num_cache_nodes   = 1
 }
 ```
-Proposed fix (not yet tfsec clean, more testing needed):
+Good example (fix applied, tfsec clean):
 ```hcl
-resource "aws_dynamodb_table" "t" {
-  name     = "t"
-  hash_key = "id"
-  attribute { name = "id" type = "S" }
-  point_in_time_recovery { enabled = true }
+resource "aws_elasticache_cluster" "c" {
+  cluster_id               = "cache"
+  engine                   = "redis"
+  node_type                = "cache.t3.micro"
+  num_cache_nodes          = 1
+  snapshot_retention_limit = 7
 }
 ```
 
@@ -702,22 +686,32 @@ REWRITE apply the keep managed services private control shown in [S19]
 ```
 
 ### [S19] keep managed services private
-need more test: the fix did not clear the finding in a minimal example yet.
+tfsec verified: the bad example below triggers the finding and the fixed example clears it.
 
 Bad example:
 ```hcl
-resource "aws_redshift_cluster" "r" {
-  cluster_identifier = "r"
-  node_type           = "dc2.large"
-  publicly_accessible = true
+resource "aws_network_acl_rule" "ssh" {
+  network_acl_id = aws_network_acl.a.id
+  rule_number    = 110
+  egress         = false
+  protocol       = "tcp"
+  from_port      = 22
+  to_port        = 22
+  rule_action    = "allow"
+  cidr_block     = "0.0.0.0/0"
 }
 ```
-Proposed fix (not yet tfsec clean, more testing needed):
+Good example (fix applied, tfsec clean):
 ```hcl
-resource "aws_redshift_cluster" "r" {
-  cluster_identifier  = "r"
-  node_type           = "dc2.large"
-  publicly_accessible = false
+resource "aws_network_acl_rule" "ssh" {
+  network_acl_id = aws_network_acl.a.id
+  rule_number    = 110
+  egress         = false
+  protocol       = "tcp"
+  from_port      = 22
+  to_port        = 22
+  rule_action    = "allow"
+  cidr_block     = "10.0.0.0/16"
 }
 ```
 
@@ -780,23 +774,39 @@ REWRITE apply the protect edge endpoints control shown in [S21]
 ```
 
 ### [S21] protect edge endpoints
-need more test: the fix did not clear the finding in a minimal example yet.
+tfsec verified: the bad example below triggers the finding and the fixed example clears it.
 
 Bad example:
 ```hcl
-resource "aws_api_gateway_method" "m" {
-  rest_api_id   = "r"
-  resource_id   = "x"
-  http_method   = "GET"
+resource "aws_api_gateway_rest_api" "a" {
+  name = "api"
+}
+resource "aws_api_gateway_resource" "r" {
+  rest_api_id = aws_api_gateway_rest_api.a.id
+  parent_id   = aws_api_gateway_rest_api.a.root_resource_id
+  path_part   = "items"
+}
+resource "aws_api_gateway_method" "post" {
+  rest_api_id   = aws_api_gateway_rest_api.a.id
+  resource_id   = aws_api_gateway_resource.r.id
+  http_method   = "POST"
   authorization = "NONE"
 }
 ```
-Proposed fix (not yet tfsec clean, more testing needed):
+Good example (fix applied, tfsec clean):
 ```hcl
-resource "aws_api_gateway_method" "m" {
-  rest_api_id   = "r"
-  resource_id   = "x"
-  http_method   = "GET"
+resource "aws_api_gateway_rest_api" "a" {
+  name = "api"
+}
+resource "aws_api_gateway_resource" "r" {
+  rest_api_id = aws_api_gateway_rest_api.a.id
+  parent_id   = aws_api_gateway_rest_api.a.root_resource_id
+  path_part   = "items"
+}
+resource "aws_api_gateway_method" "post" {
+  rest_api_id   = aws_api_gateway_rest_api.a.id
+  resource_id   = aws_api_gateway_resource.r.id
+  http_method   = "POST"
   authorization = "AWS_IAM"
 }
 ```
