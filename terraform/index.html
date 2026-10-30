@@ -366,40 +366,53 @@ table.map tbody tr:hover{background:var(--accent-soft)}
 
   // ---- Security Error Fix ----
   var secRendered=false;
+  var SRCMETA={dataset:["dataset","#0e7490"],online:["online","#b4541e"],official:["official","#157a43"]};
+  function srcBadge(src){
+    var m=SRCMETA[src]||[src,"#5a6472"];
+    var b=document.createElement("span"); b.className="srcbadge";
+    b.style.cssText="font-family:var(--mono);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#fff;background:"+m[1]+";border-radius:6px;padding:2px 7px;";
+    b.textContent=m[0]; return b;
+  }
   function renderSecurity(){
     if(secRendered) return; secRendered=true;
     var box=document.getElementById("secbox"); box.innerHTML="";
     ERR.security.forEach(function(s){
+      var ex=s.examples||[];
       var c=document.createElement("div"); c.className="ecard secrow";
-      c.dataset.k=(s.id+" "+s.desc+" "+s.rules.join(" ")+" "+s.sev+(s.covered?" covered":" uncovered")).toLowerCase();
+      c.dataset.k=(s.id+" "+s.desc+" "+s.rules.join(" ")+" "+s.sev+(s.covered?" covered":" uncovered")+" "+ex.map(function(e){return e.src;}).join(" ")).toLowerCase();
       var h=document.createElement("h3");
       var sev=document.createElement("span"); sev.className="sev "+s.sev; sev.textContent=s.sev; h.appendChild(sev);
       var id=document.createElement("a"); id.className="jump"; id.style.marginTop="0"; id.href=s.avd_link; id.target="_blank"; id.rel="noopener"; id.textContent=s.id; h.appendChild(id);
       var rules=document.createElement("span");
       rules.innerHTML = s.rules.length? s.rules.map(function(x){return "<span class='chip'><b>["+x+"]</b></span>";}).join(" ") : "<span class='covered-no'>no rule yet</span>";
       h.appendChild(rules);
-      var cnt=document.createElement("span"); cnt.className="pid"; cnt.style.marginLeft="auto"; cnt.textContent=s.count+" hits"; h.appendChild(cnt);
+      var cnt=document.createElement("span"); cnt.className="pid"; cnt.style.marginLeft="auto";
+      cnt.textContent=s.count+" hits · "+ex.length+" verified pair"+(ex.length!==1?"s":""); h.appendChild(cnt);
       c.appendChild(h);
       var d=document.createElement("p"); d.className="desc"; d.textContent=s.desc; c.appendChild(d);
       c.appendChild(secTitle("example error log")); c.appendChild(pre(s.example_log));
-      if(s.bad||s.good){
-        c.appendChild(secTitle("bad vs good example"));
-        var cols=document.createElement("div"); cols.className="cols";
-        cols.appendChild(colBlock("bad", s.bad||"(resource emitted without the control)"));
-        cols.appendChild(colBlock("good", s.good||"(need more test)")); c.appendChild(cols);
+      if(ex.length){
+        ex.forEach(function(e,i){
+          var t=secTitle(""); t.appendChild(srcBadge(e.src));
+          var lab=document.createElement("span"); lab.style.cssText="margin-left:8px;font-weight:600;";
+          lab.textContent="example "+(i+1)+(e.pid?(" · "+e.pid):""); t.appendChild(lab);
+          if(e.ref){ var a=document.createElement("a"); a.className="jump"; a.style.cssText="margin:0 0 0 8px;font-size:.72rem;"; a.href=e.ref; a.target="_blank"; a.rel="noopener"; a.textContent="reference"; t.appendChild(a); }
+          c.appendChild(t);
+          if(e.note){ var nn=document.createElement("div"); nn.className="src-note"; nn.textContent=e.note; c.appendChild(nn); }
+          var cols=document.createElement("div"); cols.className="cols";
+          cols.appendChild(colBlock("bad (fails tfsec)", e.bad));
+          cols.appendChild(colBlock("good (passes tfsec)", e.good)); c.appendChild(cols);
+        });
+      } else {
+        var nm=document.createElement("div"); nm.className="src-note"; nm.textContent="no verified pair yet — need more test"; c.appendChild(nm);
       }
-      if(s.tested){ var tn=document.createElement("div"); tn.className="src-note"; tn.textContent="tfsec status: "+s.tested; c.appendChild(tn); }
-      if(s.official_bad||s.official_good){
-        c.appendChild(secTitle("tfsec / Aqua AVD source example"));
-        var note=document.createElement("div"); note.className="src-note"; note.textContent="from "+s.avd_link; c.appendChild(note);
-        var cols2=document.createElement("div"); cols2.className="cols official";
-        cols2.appendChild(colBlock("bad (source)", s.official_bad||"(source page lists the secure example only)"));
-        cols2.appendChild(colBlock("good (source)", s.official_good||"")); c.appendChild(cols2);
-      }
+      var tn=document.createElement("div"); tn.className="src-note"; tn.textContent="tfsec status: "+s.tested; c.appendChild(tn);
       if(s.case_n) c.appendChild(caseLink(s.case_n,s.case_pid));
       box.appendChild(c);
     });
-    wireErrSearch("qse","countse","#secbox .secrow", ERR.security.length+" tfsec ids, "+ERR.covered_count+" mapped");
+    var tot=ERR.verified_pairs_total||0, bs=ERR.verified_by_source||{};
+    wireErrSearch("qse","countse","#secbox .secrow",
+      ERR.security.length+" tfsec ids · "+(ERR.ids_with_pair||0)+" with a verified pair · "+tot+" pairs ("+(bs.dataset||0)+" dataset, "+(bs.online||0)+" online, "+(bs.official||0)+" official)");
   }
 
   function loadCatalog(){
