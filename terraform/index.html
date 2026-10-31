@@ -218,7 +218,7 @@ table.map tbody tr:hover{background:var(--accent-soft)}
 
   <section id="view-all" role="tabpanel" aria-labelledby="tab-all" class="hidden">
     <div class="rules-head">
-      <input id="qa" class="search" type="search" placeholder="filter map: R12, s3, AVD-AWS-0080, uncovered" autocomplete="off">
+      <input id="qa" class="search" type="search" placeholder="filter map: R12, s3, AVD-AWS-0080, PROMPT_0123, not clean" autocomplete="off">
       <div class="count" id="counta"></div>
     </div>
     <div id="allbox" class="md" style="max-height:72vh">Loading&hellip;</div>
@@ -317,6 +317,30 @@ table.map tbody tr:hover{background:var(--accent-soft)}
       rows+="<tr><td><b>"+r+"</b></td><td>"+s+"</td><td>"+esc(RTITLE[r])+"</td><td>"+kind+"</td><td>"+(RCOUNT[r]||0)+" cases</td></tr>"; }
     t.innerHTML=rows+"</tbody>"; box.appendChild(t);
 
+    // Case to rule map: every one of the dataset cases and the rules its hardened spec applies
+    var ch=document.createElement("h2"); ch.textContent="Case to rule map ("+CASES.length+" cases)"; box.appendChild(ch);
+    var cnote=document.createElement("p"); cnote.className="sub";
+    cnote.textContent="Each dataset case and the rules its hardened spec applies. Filter above by rule (type R12), case id (PROMPT_0123) or clean / not clean. Click a case to open it.";
+    box.appendChild(cnote);
+    var ct=document.createElement("table"); ct.className="map";
+    var cr="<thead><tr><th>Case</th><th>Clean</th><th>Rules</th><th>Rules applied</th></tr></thead><tbody>";
+    CASES.forEach(function(c){
+      var rids=(c.rules||[]).map(function(x){return x.r;});
+      var key=(c.pid+" "+rids.join(" ")+" "+(c.clean?"clean":"not clean")).toLowerCase();
+      cr+="<tr class='caserow' data-n='"+c.n+"' data-k='"+esc(key)+"'>"+
+        "<td><a class='jump' href='#c"+c.n+"'>"+esc(c.pid)+"</a></td>"+
+        "<td>"+(c.clean?"yes":"<span class='covered-no'>no</span>")+"</td>"+
+        "<td>"+rids.length+"</td>"+
+        "<td>"+(rids.length?rids.map(function(x){return "["+x+"]";}).join(""):"<span class='covered-no'>none</span>")+"</td></tr>";
+    });
+    ct.innerHTML=cr+"</tbody>"; box.appendChild(ct);
+    ct.addEventListener("click", function(ev){
+      var a=ev.target.closest?ev.target.closest(".caserow a.jump"):null; if(!a) return;
+      ev.preventDefault();
+      var n=parseInt(a.closest("tr").getAttribute("data-n"),10);
+      showTab("view-cases"); selectCase(n,true);
+    });
+
     var h2=document.createElement("h2"); h2.textContent="Security findings map ("+ERR.security.length+" tfsec ids)"; box.appendChild(h2);
     var st=document.createElement("table"); st.className="map";
     var sr="<thead><tr><th>tfsec id</th><th>sev</th><th>finding</th><th>count</th><th>maps to</th></tr></thead><tbody>";
@@ -336,8 +360,8 @@ table.map tbody tr:hover{background:var(--accent-soft)}
         "<td>"+esc(s.title)+"</td><td>"+s.count+"</td><td>["+s.rule+"]</td></tr>"; });
     yt.innerHTML=yr+"</tbody>"; box.appendChild(yt);
 
-    wireErrSearch("qa","counta","#allbox .secrow, #allbox .synrow",
-                  ERR.security.length+" security ids, "+ERR.syntax.length+" syntax types");
+    wireErrSearch("qa","counta","#allbox .secrow, #allbox .synrow, #allbox .caserow",
+                  CASES.length+" cases, "+ERR.security.length+" security ids, "+ERR.syntax.length+" syntax types");
   }
 
   // ---- Syntax Error Fix ----
@@ -579,6 +603,7 @@ table.map tbody tr:hover{background:var(--accent-soft)}
 
   fetch("cases.json").then(function(r){return r.json();}).then(function(data){
     CASES=data; filtered=CASES.slice(); renderList();
+    if(allLoaded && ERR) renderAll();
     bootHash();
     if(!current) elDetail.innerHTML='<p class="sub">'+CASES.length+' cases loaded. Pick one on the left, or search.</p>';
   }).catch(function(){
