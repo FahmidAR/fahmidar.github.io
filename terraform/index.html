@@ -145,6 +145,25 @@ table.map{border-collapse:collapse;width:100%;font-size:.82rem;font-variant-nume
 table.map th,table.map td{border:1px solid var(--border);padding:6px 9px;text-align:left;white-space:nowrap}
 table.map thead th{position:sticky;top:0;background:var(--surface2);z-index:1;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;text-transform:uppercase}
 table.map tbody tr:hover{background:var(--accent-soft)}
+/* mandatory-rule highlight: one colour for the rule(s) that actually fix a finding */
+.maptag{font-family:var(--mono);font-size:.72rem;color:var(--muted);font-weight:600;margin-right:3px}
+.maptag.mand,.rtag.mand{color:#fff;background:var(--mand);border:1px solid var(--mand);border-radius:5px;padding:1px 7px}
+.chip.mand{color:#fff;background:var(--mand);border-color:var(--mand)}.chip.mand b{color:#fff}
+:root{--mand:#b4287a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--mand:#f06bb4}}
+:root[data-theme="dark"]{--mand:#f06bb4}
+.maplegend{font-family:var(--mono);font-size:.72rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 2px;align-items:center}
+.swatch{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:6px}
+/* severity colour on the error-log to code map */
+table.map tr.srow td:first-child{border-left-width:4px;border-left-style:solid}
+tr.srow.sv-CRITICAL td:first-child{border-left-color:#e0564f}
+tr.srow.sv-HIGH td:first-child{border-left-color:#e0915a}
+tr.srow.sv-MEDIUM td:first-child{border-left-color:#cda434}
+tr.srow.sv-LOW td:first-child{border-left-color:#5aa6d0}
+/* per-rule example cards */
+.rex{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:0 0 10px;background:var(--surface)}
+.rex h4{margin:0 0 4px;font-family:var(--mono);font-size:.82rem}
+.rex h4 .rt{color:var(--accent);font-weight:700}
 </style>
 
 <div class="wrap">
@@ -253,6 +272,28 @@ table.map tbody tr:hover{background:var(--accent-soft)}
 
   function esc(s){var d=document.createElement("div");d.textContent=s==null?"":String(s);return d.innerHTML;}
   function pre(text){var p=document.createElement("pre");p.className="code";p.textContent=text||"";return p;}
+  // mandatory rules for a case = the rules the dataset tagged on an actual finding ([Rxx] in old_sec)
+  function mandSet(c){
+    var s={}, re=/\[(R\d\d)\]/g, m, txt=(c.old_sec||"");
+    while((m=re.exec(txt))) s[m[1]]=1;
+    return s;
+  }
+  // one verified bad->good example per rule, pulled from the error data
+  var RULE_EX=null;
+  function buildRuleExamples(){
+    if(RULE_EX) return RULE_EX;
+    var out={};
+    (ERR.syntax||[]).forEach(function(s){
+      if(s.rule && !out[s.rule] && (s.bad||s.good)) out[s.rule]={bad:s.bad,good:s.good,src:"dataset syntax",id:s.title};
+    });
+    (ERR.security||[]).forEach(function(s){
+      var ex=(s.examples||[])[0]; if(!ex) return;
+      (s.rules||[]).forEach(function(r){
+        if(!out[r]) out[r]={bad:ex.bad,good:ex.good,src:(ex.src||"dataset")+" · "+s.id,id:s.id};
+      });
+    });
+    RULE_EX=out; return out;
+  }
 
   // tabs
   var TABS=[["tab-cases","view-cases"],["tab-rules","view-rules"],["tab-all","view-all"],
@@ -322,6 +363,10 @@ table.map tbody tr:hover{background:var(--accent-soft)}
     var cnote=document.createElement("p"); cnote.className="sub";
     cnote.textContent="Each dataset case and the rules its hardened spec applies. Pick a rule to see only the cases that apply it, or type a case id. Click a case to open it.";
     box.appendChild(cnote);
+    var leg=document.createElement("div"); leg.className="maplegend";
+    leg.innerHTML="<span><span class='swatch' style='background:var(--mand)'></span>mandatory rule (clears an actual finding on this case)</span>"+
+      "<span><span class='swatch' style='background:var(--muted)'></span>supporting or baseline rule</span>";
+    box.appendChild(leg);
     var bar=document.createElement("div"); bar.className="rules-head";
     var opts="<option value=''>filter by rule applied: all rules</option>";
     for(var ri=1;ri<=24;ri++){ var rn="R"+(ri<10?"0":"")+ri;
@@ -334,12 +379,16 @@ table.map tbody tr:hover{background:var(--accent-soft)}
     var cr="<thead><tr><th>Case</th><th>Clean</th><th>Rules</th><th>Rules applied</th></tr></thead><tbody>";
     CASES.forEach(function(c){
       var rids=(c.rules||[]).map(function(x){return x.r;});
+      var mand=mandSet(c);
       var key=(c.pid+" "+rids.join(" ")+" "+(c.clean?"clean":"not clean")).toLowerCase();
+      var applied=rids.length?rids.map(function(x){
+        return "<span class='maptag"+(mand[x]?" mand":"")+"'>["+x+"]</span>";
+      }).join(""):"<span class='covered-no'>none</span>";
       cr+="<tr class='caserow' data-n='"+c.n+"' data-rules='"+rids.join(",")+"' data-k='"+esc(key)+"'>"+
         "<td><a class='jump' href='#c"+c.n+"'>"+esc(c.pid)+"</a></td>"+
         "<td>"+(c.clean?"yes":"<span class='covered-no'>no</span>")+"</td>"+
         "<td>"+rids.length+"</td>"+
-        "<td>"+(rids.length?rids.map(function(x){return "["+x+"]";}).join(""):"<span class='covered-no'>none</span>")+"</td></tr>";
+        "<td>"+applied+"</td></tr>";
     });
     ct.innerHTML=cr+"</tbody>"; box.appendChild(ct);
     ct.addEventListener("click", function(ev){
@@ -363,14 +412,22 @@ table.map tbody tr:hover{background:var(--accent-soft)}
       selEl.addEventListener("change",runMap); txtEl.addEventListener("input",runMap); runMap();
     })();
 
-    var h2=document.createElement("h2"); h2.textContent="Security findings map ("+ERR.security.length+" tfsec ids)"; box.appendChild(h2);
+    var h2=document.createElement("h2"); h2.textContent="Security findings map: error log to code fix ("+ERR.security.length+" tfsec ids)"; box.appendChild(h2);
+    var sleg=document.createElement("div"); sleg.className="maplegend";
+    sleg.innerHTML="<span>severity:</span>"+
+      "<span><span class='swatch' style='background:#e0564f'></span>critical</span>"+
+      "<span><span class='swatch' style='background:#e0915a'></span>high</span>"+
+      "<span><span class='swatch' style='background:#cda434'></span>medium</span>"+
+      "<span><span class='swatch' style='background:#5aa6d0'></span>low</span>";
+    box.appendChild(sleg);
     var st=document.createElement("table"); st.className="map";
     var sr="<thead><tr><th>tfsec id</th><th>sev</th><th>finding</th><th>count</th><th>maps to</th></tr></thead><tbody>";
     ERR.security.forEach(function(s){
-      sr+="<tr class='secrow' data-k='"+esc((s.id+" "+s.desc+" "+s.rules.join(" ")+" "+s.sev+(s.covered?"":" uncovered")).toLowerCase())+"'>"+
+      var mapsto=s.rules.length?s.rules.map(function(x){return "<span class='maptag mand'>["+x+"]</span>";}).join(""):"<span class='covered-no'>no rule yet</span>";
+      sr+="<tr class='secrow srow sv-"+s.sev+"' data-k='"+esc((s.id+" "+s.desc+" "+s.rules.join(" ")+" "+s.sev+(s.covered?"":" uncovered")).toLowerCase())+"'>"+
         "<td><a class='jump' target='_blank' rel='noopener' href='"+s.avd_link+"'>"+s.id+"</a></td>"+
         "<td><span class='sev "+s.sev+"'>"+s.sev+"</span></td><td>"+esc(s.desc)+"</td><td>"+s.count+"</td>"+
-        "<td>"+(s.rules.length?s.rules.map(function(x){return "["+x+"]";}).join(""):"<span class='covered-no'>no rule yet</span>")+"</td></tr>";
+        "<td>"+mapsto+"</td></tr>";
     });
     st.innerHTML=sr+"</tbody>"; box.appendChild(st);
 
@@ -381,6 +438,28 @@ table.map tbody tr:hover{background:var(--accent-soft)}
       yr+="<tr class='synrow' data-k='"+esc((s.title+" "+s.rule+" "+s.desc).toLowerCase())+"'>"+
         "<td>"+esc(s.title)+"</td><td>"+s.count+"</td><td>["+s.rule+"]</td></tr>"; });
     yt.innerHTML=yr+"</tbody>"; box.appendChild(yt);
+
+    // Example per rule: one verified bad -> good snippet for every rule R01 to R24
+    var exH=document.createElement("h2"); exH.textContent="Example per rule (R01 to R24)"; box.appendChild(exH);
+    var exN=document.createElement("p"); exN.className="sub";
+    exN.textContent="One verified before/after snippet for each rule: the bad fragment that triggers the finding and the good fragment that clears it.";
+    box.appendChild(exN);
+    var byRule=buildRuleExamples();
+    for(var ei=1;ei<=24;ei++){
+      var rn="R"+(ei<10?"0":"")+ei, ex=byRule[rn];
+      var card=document.createElement("div"); card.className="rex";
+      var hh=document.createElement("h4"); hh.innerHTML="<span class='rt'>"+rn+"</span> &mdash; "+esc(RTITLE[rn]); card.appendChild(hh);
+      if(ex && (ex.bad||ex.good)){
+        var meta=document.createElement("div"); meta.className="src-note"; meta.textContent="source: "+ex.src; card.appendChild(meta);
+        var cc=document.createElement("div"); cc.className="cols";
+        cc.appendChild(colBlock("bad (fails)", ex.bad||"(n/a)"));
+        cc.appendChild(colBlock("good (passes)", ex.good||"(n/a)")); card.appendChild(cc);
+      } else {
+        var nn=document.createElement("div"); nn.className="src-note";
+        nn.textContent="worked fix shown in the S"+rn.slice(1)+" block on the 459 Rules & Fixes tab"; card.appendChild(nn);
+      }
+      box.appendChild(card);
+    }
 
     wireErrSearch("qa","counta","#allbox .secrow, #allbox .synrow",
                   ERR.security.length+" security ids, "+ERR.syntax.length+" syntax types");
@@ -540,6 +619,7 @@ table.map tbody tr:hover{background:var(--accent-soft)}
   function selectCase(n, updateHash){
     var c=CASES.find(function(x){return x.n===n;}); if(!c) return;
     current=c;
+    var mand=mandSet(c);
     Array.prototype.forEach.call(elList.querySelectorAll(".item"),function(b){
       b.setAttribute("aria-current", (+b.dataset.n===n)?"true":"false");
     });
@@ -568,7 +648,8 @@ table.map tbody tr:hover{background:var(--accent-soft)}
     intro.textContent="General area, exact requirement, then the reason. Applicable items:"; d.appendChild(intro);
     var chips=document.createElement("div"); chips.className="chips";
     c.sfix.forEach(function(s){
-      var sp=document.createElement("span"); sp.className="chip";
+      var rid="R"+String(s.s).slice(1);
+      var sp=document.createElement("span"); sp.className="chip"+(mand[rid]?" mand":"");
       sp.innerHTML="<b>["+esc(s.s)+"]</b> "+esc(s.label); chips.appendChild(sp);
     });
     d.appendChild(chips);
@@ -584,11 +665,15 @@ table.map tbody tr:hover{background:var(--accent-soft)}
 
     // rules
     d.appendChild(secTitle("Rules applied"));
+    var rleg=document.createElement("div"); rleg.className="maplegend";
+    rleg.innerHTML="<span><span class='swatch' style='background:var(--mand)'></span>mandatory (clears a finding here)</span>"+
+      "<span><span class='swatch' style='background:var(--muted)'></span>supporting / baseline</span>";
+    d.appendChild(rleg);
     var ol=document.createElement("ol"); ol.className="steps";
     c.rules.forEach(function(r){
       var li=document.createElement("li");
       li.appendChild(document.createTextNode(r.step+" "));
-      var t=document.createElement("span"); t.className="rtag"; t.textContent="["+r.r+"]";
+      var t=document.createElement("span"); t.className="rtag"+(mand[r.r]?" mand":""); t.textContent="["+r.r+"]";
       li.appendChild(t); ol.appendChild(li);
     });
     d.appendChild(ol);
