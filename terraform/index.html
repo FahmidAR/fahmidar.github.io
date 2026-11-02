@@ -358,6 +358,31 @@ tr.srow.sv-LOW td:first-child{border-left-color:#5aa6d0}
       rows+="<tr><td><b>"+r+"</b></td><td>"+s+"</td><td>"+esc(RTITLE[r])+"</td><td>"+kind+"</td><td>"+(RCOUNT[r]||0)+" cases</td></tr>"; }
     t.innerHTML=rows+"</tbody>"; box.appendChild(t);
 
+    // Finding count per case: syntax errors + security findings in the INITIAL code, most severe first
+    var fh=document.createElement("h2"); fh.textContent="Finding count per case ("+CASES.length+" cases)"; box.appendChild(fh);
+    var fn=document.createElement("p"); fn.className="sub";
+    fn.textContent="Every dataset case with the number of syntax errors and security findings in its initial code. Sorted by security findings first (most to least), then by syntax errors. Click a case to open it.";
+    box.appendChild(fn);
+    var SYN_RE=/\[error\]/g, SEC_RE=/\[(?:CRITICAL|HIGH|MEDIUM|LOW)\]\s+AVD-AWS-\d+/g;
+    function cnt(s,re){ var m=(s||"").match(re); return m?m.length:0; }
+    var frows=CASES.map(function(c){
+      return {n:c.n, pid:c.pid, syn:cnt(c.old_syn,SYN_RE), sec:cnt(c.old_sec,SEC_RE)};
+    });
+    frows.sort(function(a,b){ return (b.sec-a.sec)||(b.syn-a.syn)||(a.n-b.n); });
+    var ft=document.createElement("table"); ft.className="map";
+    var fr="<thead><tr><th>Case</th><th>Syntax findings</th><th>Security findings</th></tr></thead><tbody>";
+    frows.forEach(function(r){
+      fr+="<tr class='caserow2' data-n='"+r.n+"'><td><a class='jump' href='#c"+r.n+"'>"+esc(r.pid)+"</a></td>"+
+        "<td>"+r.syn+"</td><td>"+r.sec+"</td></tr>";
+    });
+    ft.innerHTML=fr+"</tbody>"; box.appendChild(ft);
+    ft.addEventListener("click", function(ev){
+      var a=ev.target.closest?ev.target.closest(".caserow2 a.jump"):null; if(!a) return;
+      ev.preventDefault();
+      var n=parseInt(a.closest("tr").getAttribute("data-n"),10);
+      showTab("view-cases"); selectCase(n,true);
+    });
+
     // Case to rule map: every dataset case and the rules its hardened spec applies, with a per-rule filter
     var ch=document.createElement("h2"); ch.textContent="Case to rule map ("+CASES.length+" cases)"; box.appendChild(ch);
     var cnote=document.createElement("p"); cnote.className="sub";
